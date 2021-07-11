@@ -157,5 +157,30 @@ namespace EventViewer.Services
         {
             var query = _liteDb.GetCollection<EventData>("EventData").DeleteMany(e => e.LocalSessionId == sessionId);
         }
+
+        public string GetIdForUser(User sessionUser)
+        {
+            var sessions = _liteDb.GetCollection<Session>("Session").FindAll().ToList();
+            Session found = null;
+
+            foreach (var session in sessions)
+            {
+                if (session.User.Equals(sessionUser))
+                {
+                    found = session;
+                    break;
+                }
+            }
+
+            return found?.Id.ToString();
+        }
+
+        public void UpdateUser(string id, User user)
+        {
+            var session = GetSession(id);
+            session.User = user;
+
+            UpdateSession(id, session);
+        }
     }
 }

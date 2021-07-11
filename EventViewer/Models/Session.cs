@@ -13,5 +13,6 @@ namespace EventViewer.Models
         public string SessionId { get; set; }
         public DateTime StartTime { get; set; }
         public User User { get; set; }
+        public string Environment { get; internal set; }
     }
 }

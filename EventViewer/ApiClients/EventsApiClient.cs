@@ -66,8 +66,9 @@ namespace EventViewer.ApiClients
             builder.AddConsole();
         });
 
-        private async Task<List<EventData>> GetEventsViaApi(string apiUrl, CancellationToken cancellationToken)
+        private async Task<List<EventData>> GetEventsViaApi(string apiUrl, string environment, CancellationToken cancellationToken)
         {
+            _httpClient.BaseAddress = new Uri($"https://api.{environment}.lumenisx.lumenis.com");
             var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested)
@@ -110,14 +111,14 @@ namespace EventViewer.ApiClients
             }
         }
 
-        public async Task<List<EventData>> GetEvents(DateTime? from = null, DateTime? to = null, Device device = null, CancellationToken cancellationToken = default)
+        public async Task<List<EventData>> GetEvents(string environment, DateTime? from = null, DateTime? to = null, Device device = null, CancellationToken cancellationToken = default)
         {
             var sn = device?.DeviceSerialNumber;
             var ga = device?.DeviceType;
 
             var apiUrl = ApiBuildUrl(ga, sn, from, to);
 
-            return await GetEventsViaApi(apiUrl, cancellationToken); 
+            return await GetEventsViaApi(apiUrl, environment, cancellationToken); 
         }
     }
 }

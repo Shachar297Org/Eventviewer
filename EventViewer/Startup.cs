@@ -72,7 +72,6 @@ namespace EventViewer
 
             services.AddHttpClient<IEventsApiClient, EventsApiClient>(client =>
             {
-                client.BaseAddress = new Uri($"https://api.{Configuration["LumX:Environment"]}.lumenisx.lumenis.com");
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.Timeout = TimeSpan.FromSeconds(300);

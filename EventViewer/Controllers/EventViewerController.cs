@@ -25,15 +25,17 @@ namespace EventViewer.Controllers
         private readonly ILogger<EventViewerController> _logger;
         private readonly IEventsDataService _eventsDataService;
         private readonly ILiteDBEventsDataService _liteDbService;
+        private readonly IUserApiAuthenticationService _authenticationService;
 
         private readonly IConfiguration Configuration;
 
         public EventViewerController(ILogger<EventViewerController> logger, IEventsDataService eventsService, ILiteDBEventsDataService liteDbService,
-                                     IConfiguration configuration)
+                                     IConfiguration configuration, IUserApiAuthenticationService authenticationService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _eventsDataService = eventsService ?? throw new ArgumentNullException(nameof(eventsService));
             _liteDbService = liteDbService ?? throw new ArgumentNullException(nameof(liteDbService));
+            _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
 
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
@@ -81,31 +83,44 @@ namespace EventViewer.Controllers
         [HttpPost]
         [Route("/setupApi")]
         public async Task<IActionResult> SetupApi([FromBody] ApiLoginResponse tokens)
-        {           
+        {
+            var env = HttpContext.Request.Host.Host.Split('.');
+            var environment = env[0] == "localhost" || env[1] == "eba-hzpipxpc" ? "int" : env[1];
+
             if (tokens == null || tokens.AccessJwt == null || tokens.RefreshJwt == null)
             {
-                return new ObjectResult("Access denied") { StatusCode = 403 }; // return BadRequest();
+                return new ObjectResult("Access denied") { StatusCode = 403 }; 
             }
 
-            User user = new User()
-            {
-                AccessToken = tokens.AccessJwt,
-                RefreshToken = tokens.RefreshJwt
-            };
-            HttpContext.Session.Set<User>("user", user);
+            var sessionUser = HttpContext.Session.Get<User>("user");
+            var id = string.Empty;
 
-            var goodToGo = await _eventsDataService.CheckCredentials(user);
-            if (!goodToGo)
+            if (sessionUser != null)
             {
-                return BadRequest();
+                id = _liteDbService.GetIdForUser(sessionUser);
             }
-
-            var session = new Session
+            else
             {
-                User = user
-            };
+                User user = new User()
+                {
+                    AccessToken = tokens.AccessJwt,
+                    RefreshToken = tokens.RefreshJwt
+                };
+                HttpContext.Session.Set<User>("user", user);
 
-            var id =_liteDbService.InsertSession(session);
+                var session = new Session
+                {
+                    User = user
+                };
+
+                var goodToGo = await _eventsDataService.CheckCredentials(environment);
+                if (!goodToGo)
+                {
+                    return new ObjectResult("Access denied") { StatusCode = 403 };
+                }
+
+                id = _liteDbService.InsertSession(session);
+            }
 
             return Json(new { id = id }); // (new { id = id });
         }
@@ -114,32 +129,46 @@ namespace EventViewer.Controllers
         [Route("/setup")]
         public async Task<IActionResult> Setup(string accessToken, long accessTokenExpiration, string refreshToken, long refreshTokenExpiration)
         {
-            if (accessToken == null || refreshToken == null)
+            var env = HttpContext.Request.Host.Host.Split('.');
+            var environment = env[0] == "localhost" || env[1] == "eba-hzpipxpc" ? "int" : env[1];
+
+            if (accessToken == null || refreshToken == null || string.IsNullOrWhiteSpace(environment))
             {
-                return new ObjectResult("Access denied") { StatusCode = 403 }; //return BadRequest();
+                return new ObjectResult("Access denied") { StatusCode = 403 };
             }
 
-            User user = new User()
-            {
-                AccessToken = new JwtToken { Token = accessToken, Expiration = accessTokenExpiration },
-                RefreshToken = new JwtToken { Token = refreshToken, Expiration = refreshTokenExpiration }
-            };
-            HttpContext.Session.Set<User>("user", user);
+            var sessionUser = HttpContext.Session.Get<User>("user");
+            var id = string.Empty;
 
-            var goodToGo = await _eventsDataService.CheckCredentials(user);
-            if (!goodToGo)
+            if (sessionUser != null)
             {
-                return BadRequest();
+                id = _liteDbService.GetIdForUser(sessionUser);
+            }
+            else
+            {
+                User user = new User()
+                {
+                    AccessToken = new JwtToken { Token = accessToken, Expiration = accessTokenExpiration },
+                    RefreshToken = new JwtToken { Token = refreshToken, Expiration = refreshTokenExpiration }
+                };
+                HttpContext.Session.Set<User>("user", user);
+
+                var session = new Session
+                {
+                    User = user
+                };
+
+                var goodToGo = await _eventsDataService.CheckCredentials(environment);
+                if (!goodToGo)
+                {
+                    return new ObjectResult("Access denied") { StatusCode = 403 };
+                }
+
+                id = _liteDbService.InsertSession(session);
+
+                Console.WriteLine($"Setup Session: {HttpContext.Session.Id}");
             }
 
-            var session = new Session
-            {
-                User = user
-            };
-
-            var id = _liteDbService.InsertSession(session);
-
-            Console.WriteLine($"Setup Session: {HttpContext.Session.Id}");
 
             return RedirectToAction("Index", new { id = id });
         }
@@ -148,14 +177,47 @@ namespace EventViewer.Controllers
         [Route("/setupBasic")]
         public async Task<IActionResult> SetupBasic()
         {
-            var user = new User();
+            var env = HttpContext.Request.Host.Host.Split('.');
+            
+            var environment = env[0] == "localhost" || env[1] == "eba-hzpipxpc" ? "int" : env[1];
 
-            var session = new Session
+            var sessionUser = HttpContext.Session.Get<User>("user");
+            
+            var id = string.Empty;
+
+            if (sessionUser != null)
             {
-                User = user
-            };
+                id = _liteDbService.GetIdForUser(sessionUser);
+            }
+            else
+            {
+                sessionUser = new User
+                {
+                    UsesBasicAuth = true
+                };
 
-            var id = _liteDbService.InsertSession(session);
+                var tokenUri = $"https://api.{environment}.lumenisx.lumenis.com/ums/v1/users/loginCredentials";
+                var user = await _authenticationService.GetTokensForUser(sessionUser, tokenUri);
+
+                if (user != null)
+                {
+                    HttpContext.Session.Set<User>("user", user);
+
+                    var session = new Session
+                    {
+                        User = user
+                    };
+
+                    id = _liteDbService.InsertSession(session);
+
+                    Console.WriteLine($"Setup Session: {HttpContext.Session.Id}");
+                }
+                else
+                {
+                    throw new EventViewerException(EventViewerError.INVALID_CREDENTIALS, "Something wrong with your basic auth credentials");
+                }
+                
+            }
 
             return RedirectToAction("Index", new { id = id });
         }

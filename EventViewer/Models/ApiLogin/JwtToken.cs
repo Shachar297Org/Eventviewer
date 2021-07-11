@@ -9,5 +9,11 @@ namespace EventViewer.Models.ApiLogin
     {
         public string Token { get; set; }
         public long Expiration { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            var arg = obj as JwtToken;
+            return Token == arg.Token && Expiration == arg.Expiration;
+        }
     }
 }

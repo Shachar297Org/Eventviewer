@@ -20,10 +20,12 @@ namespace EventViewer.Interfaces
         IQueryable<EventData> GetEventsQueryable();
 
         string InsertSession(Session session);
-        Session GetSession(string id);
+        Session GetSession(string id); 
         int DeleteExpiredSessions();
         bool UpdateSession(string id, Session session);
 
         bool UpdateSessionTime(string id);
+        string GetIdForUser(User sessionUser);
+        void UpdateUser(string id, User user);
     }
 }

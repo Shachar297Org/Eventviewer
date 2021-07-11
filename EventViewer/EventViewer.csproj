@@ -22,4 +22,8 @@
     <PackageReference Include="Quartz.Extensions.Hosting" Version="3.3.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="ApiClients\Handlers\" />
+  </ItemGroup>
+
 </Project>

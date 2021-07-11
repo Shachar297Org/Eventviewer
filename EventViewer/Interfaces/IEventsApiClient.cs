@@ -9,6 +9,6 @@ namespace EventViewer.Interfaces
 {
     public interface IEventsApiClient
     {
-        Task<List<EventData>> GetEvents(DateTime? from = null, DateTime? to = null, Device? device = null, CancellationToken cancellationToken = default);
+        Task<List<EventData>> GetEvents(string environment, DateTime? from = null, DateTime? to = null, Device? device = null, CancellationToken cancellationToken = default);
     }
 }

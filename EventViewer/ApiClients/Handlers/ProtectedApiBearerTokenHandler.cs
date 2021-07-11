@@ -23,9 +23,7 @@ namespace EventViewer.ApiClients
 
         private readonly IConfiguration Configuration;
 
-        private readonly static string _basicAuthTokenUrl = "/ums/v1/users/loginCredentials";
         private readonly static string _refreshTokenUrl = "/ums/v1/users/current/refreshToken";
-        //private readonly static string _tokenAuthTokenUrl = "/ums/v1/tokens/{0}?entityId={1}&operation={2}";
 
         public ProtectedApiBearerTokenHandler(IUserApiAuthenticationService authenticationService, IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
         {
@@ -40,22 +38,26 @@ namespace EventViewer.ApiClients
             CancellationToken cancellationToken)
         {            
             var baseUri = request.RequestUri.GetLeftPart(UriPartial.Authority);
-            var isBasicAuth = Configuration["LumX:Authentication"] == "basic";
-
+            
             User user = _httpContextAccessor.HttpContext.Session.Get<User>("user");
             Console.WriteLine($"API Session {_httpContextAccessor.HttpContext.Session.Id} user: {user?.AccessToken} ");
 
-            if (!isBasicAuth && (user == null || user.AccessToken == null))
+            if (user == null || user.AccessToken == null)
             {
                 throw new EventViewerException(EventViewerError.INVALID_CREDENTIALS, "Access denied, please log in again through Portal");
             }
             else
             {
-                if (isBasicAuth && (user == null || user.AccessToken == null))
-                {
-                    var tokenUri = baseUri + _basicAuthTokenUrl;
+                DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                var expirationDate = start.AddMilliseconds(user.AccessToken.Expiration).ToLocalTime();
 
-                    user = await _authenticationService.GetTokensForUser(user, tokenUri, isBasicAuth:true);
+                if (expirationDate <= DateTime.Now)
+                {
+                    // Refresh
+
+                    var tokenUri = baseUri + _refreshTokenUrl;
+
+                    user = await _authenticationService.RefreshTokensForUser(user, tokenUri);
 
                     if (user != null)
                     {
@@ -63,35 +65,10 @@ namespace EventViewer.ApiClients
                     }
                     else
                     {
-                        throw new EventViewerException(EventViewerError.INVALID_CREDENTIALS, "Something wrong with your basic auth credentials");
+                        throw new EventViewerException(EventViewerError.INVALID_CREDENTIALS, "Couldn't get refreshed tokens");
                     }
 
-                }
-                else
-                {
-                    DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                    var expirationDate = start.AddMilliseconds(user.AccessToken.Expiration).ToLocalTime();
-
-                    if (expirationDate <= DateTime.Now)
-                    {
-                        // Refresh
-
-                        var tokenUri = baseUri + _refreshTokenUrl;
-
-                        user = await _authenticationService.RefreshTokensForUser(user, tokenUri, isBasicAuth);
-
-                        if (user != null)
-                        {
-                            _httpContextAccessor.HttpContext.Session.Set<User>("user", user);
-                        }
-                        else
-                        {
-                            throw new EventViewerException(EventViewerError.INVALID_CREDENTIALS, "Couldn't get refreshed tokens");
-                        }
-
-                    }
-                    
-                }
+                }                
 
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", user.AccessToken.Token);
                 return await base.SendAsync(request, cancellationToken);

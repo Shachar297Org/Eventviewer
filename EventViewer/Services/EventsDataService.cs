@@ -33,15 +33,17 @@ namespace EventViewer.Services
 
         public async Task<List<EventData>> GetEventsData(DateTime? from = null, DateTime? to = null, Device device = null)
         {
+            var env = _httpContextAccessor.HttpContext.Request.Host.Host.Split('.');
+            var environment = env[0] == "localhost" || env[1] == "eba-hzpipxpc" ? "int" : env[1];
+
             CancellationToken cancellationToken = _httpContextAccessor.HttpContext.RequestAborted;
             if (cancellationToken.IsCancellationRequested)
             {
                 return new List<EventData>();
             }
 
-            var result = await _client.GetEvents(from, to, device, cancellationToken);
-            
             var localSession = _httpContextAccessor.HttpContext.Session.Id;
+            var result = await _client.GetEvents(environment, from, to, device, cancellationToken);           
 
             foreach (var item in result)
             {
@@ -62,7 +64,7 @@ namespace EventViewer.Services
             return result;
         }
 
-        public async Task<bool> CheckCredentials(User user)
+        public async Task<bool> CheckCredentials(string environment)
         {
             var from = DateTime.MinValue;
             var to = DateTime.UtcNow;
@@ -75,7 +77,7 @@ namespace EventViewer.Services
 
             try
             {
-                await _client.GetEvents(from, to, device);
+                await _client.GetEvents(environment, from, to, device);
             }
             catch(EventViewerException ex)
             {

@@ -25,11 +25,11 @@ namespace EventViewer.Services
             Configuration = configuration;
         }
 
-        public async Task<User> GetTokensForUser(User user, string tokenUri, bool isBasicAuth = false)
+        public async Task<User> GetTokensForUser(User user, string tokenUri)
         {
             HttpResponseMessage response = null;
 
-            if (isBasicAuth)
+            if (user.UsesBasicAuth)
             {
                 var body = new { email = Configuration["LumX:Username"], password = Configuration["LumX:Password"] };
                 response = await _httpClient.PostAsync(tokenUri, new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json"));
@@ -57,7 +57,7 @@ namespace EventViewer.Services
             return user;
         }
 
-        public async Task<User> RefreshTokensForUser(User user, string tokenUri, bool isBasicAuth = false)
+        public async Task<User> RefreshTokensForUser(User user, string tokenUri)
         {
             var body = new { refreshToken = user.RefreshToken.Token };
             var response = await _httpClient.PostAsync(tokenUri, new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json"));

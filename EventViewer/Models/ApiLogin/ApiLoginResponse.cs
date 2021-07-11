@@ -25,5 +25,6 @@ namespace EventViewer.Models.ApiLogin
 		public string Locale { get; set; }
 		public JwtToken RefreshJwt { get; set; }
 		public bool MfaRequired { get; set; }
-	}
+        public string Environment { get; set; }
+    }
 }
