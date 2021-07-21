@@ -21,17 +21,13 @@ namespace EventViewer.ApiClients
         private readonly IUserApiAuthenticationService _authenticationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        private readonly IConfiguration Configuration;
-
         private readonly static string _refreshTokenUrl = "/ums/v1/users/current/refreshToken";
 
-        public ProtectedApiBearerTokenHandler(IUserApiAuthenticationService authenticationService, IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
+        public ProtectedApiBearerTokenHandler(IUserApiAuthenticationService authenticationService, IHttpContextAccessor httpContextAccessor)
         {
             _authenticationService = authenticationService;
             _httpContextAccessor = httpContextAccessor;
-
-            Configuration = configuration;
-    }
+        }
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,

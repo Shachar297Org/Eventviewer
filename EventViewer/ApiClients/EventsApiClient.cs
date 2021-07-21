@@ -4,13 +4,13 @@ using EventViewer.Models;
 using EventViewer.Models.ApiLogin;
 using IdentityModel.Client;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
@@ -80,7 +80,10 @@ namespace EventViewer.ApiClients
             {
                 //Console.WriteLine(response.StatusCode);
                 string errorJson = await response.Content.ReadAsStringAsync();
-                var errorResponseObject = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                var errorResponseObject = JsonSerializer.Deserialize<ApiErrorResponse>(errorJson, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
 
                 if (errorResponseObject?.Code == null)
                 {
@@ -99,7 +102,10 @@ namespace EventViewer.ApiClients
             }
 
             string json = await response.Content.ReadAsStringAsync();
-            var responseObject = JsonConvert.DeserializeObject<ApiRefreshResponse>(json);
+            var responseObject = JsonSerializer.Deserialize<ApiRefreshResponse>(json, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
 
             if (responseObject != null)
             {

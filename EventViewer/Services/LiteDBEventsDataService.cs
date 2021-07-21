@@ -175,12 +175,5 @@ namespace EventViewer.Services
             return found?.Id.ToString();
         }
 
-        public void UpdateUser(string id, User user)
-        {
-            var session = GetSession(id);
-            session.User = user;
-
-            UpdateSession(id, session);
-        }
     }
 }

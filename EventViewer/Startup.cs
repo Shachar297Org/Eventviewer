@@ -1,11 +1,13 @@
 using EventViewer.ApiClients;
 using EventViewer.Data;
 using EventViewer.Interfaces;
+using EventViewer.Middleware;
 using EventViewer.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -60,7 +63,14 @@ namespace EventViewer
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-            services.AddControllersWithViews().AddJsonOptions(options =>
+            services.AddControllersWithViews().AddMvcOptions(options =>
+            {
+                var jsonInputFormatter = options.InputFormatters
+                                                .OfType<SystemTextJsonInputFormatter>()
+                                                .Single();
+
+                jsonInputFormatter.SupportedMediaTypes.Add("application/csp-report");
+            }).AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             });
@@ -84,6 +94,8 @@ namespace EventViewer
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseMiddleware(typeof(CustomResponseHeaderMiddleware));
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -102,18 +114,7 @@ namespace EventViewer
             //app.UseAuthorization();
 
             app.UseSession();
-            /*app.Run(async (context) =>
-            {
-                if (context.Session.Keys.Contains("name"))
-                {
-                    //await context.Response.WriteAsync($"Hello {context.Session.GetString("name")}!");
-                }
-                else
-                {
-                    //context.Session.SetString("name", "Tom");
-                    //await context.Response.WriteAsync("Hello World!");
-                }
-            });*/
+
 
             app.UseEndpoints(endpoints =>
             {

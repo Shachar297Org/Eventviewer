@@ -11,7 +11,6 @@
 <!-- Responsive datatable examples -->
 <link href="~/assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />
 <link href="~/assets/css/jquery.datetimepicker.css" rel="stylesheet" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 <div class="row">
     <div class="col-lg-4"></div>
@@ -19,12 +18,12 @@
         <form asp-controller="EventViewer" asp-action="Search" method="post" id="searchForm">
             <div class="form-group">
                 <label class="control-label">From</label>
-                <input type="text" id="from" name="from" class="form-control" />
+                <input type="text" id="from" name="from" class="form-control" readonly="true"/>
 
             </div>
             <div class="form-group">
                 <label class="control-label">To</label>
-                <input type="text" id="to" name="to" class="form-control" />
+                <input type="text" id="to" name="to" class="form-control"  readonly="true" />
 
             </div>
             <div class="form-group">
@@ -40,7 +39,7 @@
 
             <div class="form-group align-center">
                 <button type="submit" class="btn btn-outline-primary w-md">
-                    <span id="loading" style="display:none;"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;LOADING...&nbsp;/&nbsp;CANCEL</span>
+                    <span id="loading" class="d-none"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;LOADING...&nbsp;/&nbsp;CANCEL</span>
                     <span id="loader">GET EVENTS</span>
                 </button>
             </div>
@@ -57,19 +56,19 @@
             <div class="card-body">
                 <div class="text-body font-weight-bold">
                     <div class="row">
-                        <div class="col-md-2" id="datesRange" style="display:none;">
+                        <div class="col-md-2 d-none" id="datesRange">
                             <p>FROM: <span id="fromResult"></span></p>
                             <p>TO: <span id="toResult"></span></p>
                         </div>
 
-                        <div class="col-md-2" id="deviceName" style="display:none;">
+                        <div class="col-md-2 d-none" id="deviceName">
                             <p>Device Serial Number: <span id="dsnResult"></span></p>
                             <p>Device Type: <span id="dtResult"></span></p>
                         </div>
 
-                        <div class="col-md-2" id="clear" style="display:none;">
+                        <div class="col-md-2 d-none" id="clear">
                             <button id="clear" class="btn btn-outline-warning w-md">
-                                <span id="clearing" style="display:none;"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;CLEARING... </span>
+                                <span id="clearing" class="d-none"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;CLEARING... </span>
                                 <span id="clearer">CLEAR</span>
                             </button>
                         </div>
@@ -130,145 +129,4 @@
 
 <script src="~/assets/js/pages/jquery.datetimepicker.full.js"></script>
 
-<script type="text/javascript">
-    debugger;
-
-    $(document).ready(function () {
-        var xhr;
-        var working = false;
-
-        const id = window.location.pathname.split('/').pop();
-
-        $("#searchForm").submit(function (e) {
-            debugger;
-            e.preventDefault();
-
-            if (working) {
-                xhr.abort();
-                working = false;
-
-                $('#loading').hide();
-                $('#loader').show();
-
-                return;
-            }
-
-            console.log('Doing ajax submit');
-            working = true;
-
-            var formAction = $(this).attr("action");
-            var fdata = new FormData(this);
-            fdata.append("id", id);
-
-            $('#loader').hide();
-            $('#loading').show();
-
-            $('#error').text("");
-
-            xhr = $.ajax({
-                type: 'post',
-                url: formAction,
-                data: fdata,
-                processData: false,
-                contentType: false
-            }).done(function (result) {
-                // do something with the result now
-                console.log(result);
-
-                $('#loading').hide();
-                $('#loader').show();
-
-                if (!result.success) {
-                    /*if (result.errorCode == 0) {
-                        $.ajax({
-                            url: '/EventViewer/Error',
-                            data: { 'errorMessage': result.errorMessage, 'errorCode': result.errorCode },
-                            type: "get",
-                            cache: false,
-                            success: function (savingStatus) {
-                                //$("#hdnOrigComments").val($('#txtComments').val());
-                                //$('#lblCommentsNotification').text(savingStatus);
-                            },
-                            error: function (xhr, ajaxOptions, thrownError) {
-                                //$('#lblCommentsNotification').text("Error encountered while saving the comments.");
-                            }
-                        });
-                    }*/
-                    $('#error').text(result.errorMessage);
-
-                    $('#deviceName').hide();
-                    $('#datesRange').hide();
-
-                    working = false;
-                }
-                else {
-                    
-                    $('#fromResult').text($("#searchForm #from").val());
-                    $('#toResult').text($("#to").val());
-
-                    $('#datesRange').show();
-
-                    if (($("#deviceSerialNumber").val() != '') && ($("#deviceType").val() != '')) {
-                        $('#dsnResult').text($("#deviceSerialNumber").val());
-                        $('#dtResult').text($("#deviceType").val());
-
-                        $('#deviceName').show();
-                    } else {
-                        $('#deviceName').hide();
-                    }
-
-                    table.ajax.reload(null, true);
-
-                    working = false;
-                }
-
-            });
-        });
-
-        var table = $(".events-datatable").DataTable({
-            "processing": true,
-            "serverSide": true,
-            "filter": true,
-            "ajax": {
-                "url": "/getEvents/",
-                "type": "POST",
-                "datatype": "json",
-                "data": {
-                    "id": window.location.pathname.split('/').pop()
-                }
-            },
-            //"columnDefs": [{
-            //    "targets": [0],
-            //    "visible": true,
-            //    "searchable": false
-            //}],
-            "columns": [
-                //{ "data": "id", "name": "Id", "autoWidth": true },
-                { "data": "deviceSerialNumber", "name": "DeviceSerialNumber", "autoWidth": true },
-                { "data": "deviceType", "name": "DeviceType", "autoWidth": true },
-                { "data": "entryKey", "name": "EntryKey", "autoWidth": true },
-                { "data": "entryValue", "name": "EntryValue", "autoWidth": true },
-                { "data": "entryTimestamp", "name": "EntryTimestamp", "autoWidth": true },
-
-            ]
-        });
-
-        $.datetimepicker.setLocale('en');
-
-        $('#from').datetimepicker({
-            dayOfWeekStart: 1,
-            lang: 'en'
-        });
-        $('#from').datetimepicker({ value: '2021/01/01 00:00', step: 10 });
-
-        $('#to').datetimepicker({
-            dayOfWeekStart: 1,
-            lang: 'en'
-        });
-        $('#to').datetimepicker({ value: '@DateTime.Now.ToString("yyyy/MM/dd HH:mm")', step: 10 });
-
-    });
-
-
-    /*sourceMappingURL=index1.js*/
-</script>
+<script src="~/js/site.js"></script>

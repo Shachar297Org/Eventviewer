@@ -3,13 +3,13 @@ using EventViewer.Models;
 using EventViewer.Models.ApiLogin;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace EventViewer.Services
@@ -32,7 +32,7 @@ namespace EventViewer.Services
             if (user.UsesBasicAuth)
             {
                 var body = new { email = Configuration["LumX:Username"], password = Configuration["LumX:Password"] };
-                response = await _httpClient.PostAsync(tokenUri, new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json"));
+                response = await _httpClient.PostAsync(tokenUri, new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"));
             }
             else
             {
@@ -46,7 +46,10 @@ namespace EventViewer.Services
             }
 
             string json = await response.Content.ReadAsStringAsync();
-            ApiLoginResponse responseObject = JsonConvert.DeserializeObject<ApiLoginResponse>(json);
+            ApiLoginResponse responseObject = JsonSerializer.Deserialize<ApiLoginResponse>(json, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
 
             var accessToken = responseObject.AccessJwt;
             var refreshToken = responseObject.RefreshJwt;
@@ -60,12 +63,15 @@ namespace EventViewer.Services
         public async Task<User> RefreshTokensForUser(User user, string tokenUri)
         {
             var body = new { refreshToken = user.RefreshToken.Token };
-            var response = await _httpClient.PostAsync(tokenUri, new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json"));
+            var response = await _httpClient.PostAsync(tokenUri, new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"));
             
             if (response.IsSuccessStatusCode)
             {
                 string json = await response.Content.ReadAsStringAsync();
-                AuthOperationData responseObject = JsonConvert.DeserializeObject<AuthOperationData>(json);
+                AuthOperationData responseObject = JsonSerializer.Deserialize<AuthOperationData>(json, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
 
                 var accessToken = responseObject.AccessJwt;
                 var refreshToken = responseObject.RefreshJwt;

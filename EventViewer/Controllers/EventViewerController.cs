@@ -17,6 +17,7 @@ using System.Globalization;
 using EventViewer.Exceptions;
 using Microsoft.Extensions.Configuration;
 using System.Threading;
+using EventViewer.Middleware;
 
 namespace EventViewer.Controllers
 {
@@ -27,17 +28,14 @@ namespace EventViewer.Controllers
         private readonly ILiteDBEventsDataService _liteDbService;
         private readonly IUserApiAuthenticationService _authenticationService;
 
-        private readonly IConfiguration Configuration;
-
         public EventViewerController(ILogger<EventViewerController> logger, IEventsDataService eventsService, ILiteDBEventsDataService liteDbService,
-                                     IConfiguration configuration, IUserApiAuthenticationService authenticationService)
+                                     IUserApiAuthenticationService authenticationService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _eventsDataService = eventsService ?? throw new ArgumentNullException(nameof(eventsService));
             _liteDbService = liteDbService ?? throw new ArgumentNullException(nameof(liteDbService));
             _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
 
-            Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         [Route("/error")]
@@ -46,13 +44,22 @@ namespace EventViewer.Controllers
             return View(errorMessage);
         }
 
+        [HttpPost("~/cspreport")]
+        public IActionResult CspReport([FromBody] CspReportRequest request)
+        {
+            // TODO: log request to a datastore somewhere
+            _logger.LogWarning($"CSP Violation: {request.CspReport.DocumentUri}, {request.CspReport.BlockedUri}");
+
+            return Ok();
+        }
+
 
         [Route("/{id?}")]
         public IActionResult Index(string id)
         {           
             if (id == null)
             {
-                return Ok();
+                return new ObjectResult("Access denied") { StatusCode = 403 };
             }
 
             Session session = null;
@@ -131,6 +138,7 @@ namespace EventViewer.Controllers
         {
             var env = HttpContext.Request.Host.Host.Split('.');
             var environment = env[0] == "localhost" || env[1] == "eba-hzpipxpc" ? "int" : env[1];
+            Console.WriteLine($"Environment: {environment}");
 
             if (accessToken == null || refreshToken == null || string.IsNullOrWhiteSpace(environment))
             {
@@ -140,7 +148,7 @@ namespace EventViewer.Controllers
             var sessionUser = HttpContext.Session.Get<User>("user");
             var id = string.Empty;
 
-            if (sessionUser != null)
+            if (sessionUser != null && environment == sessionUser.Environment)
             {
                 id = _liteDbService.GetIdForUser(sessionUser);
             }
@@ -149,7 +157,8 @@ namespace EventViewer.Controllers
                 User user = new User()
                 {
                     AccessToken = new JwtToken { Token = accessToken, Expiration = accessTokenExpiration },
-                    RefreshToken = new JwtToken { Token = refreshToken, Expiration = refreshTokenExpiration }
+                    RefreshToken = new JwtToken { Token = refreshToken, Expiration = refreshTokenExpiration },
+                    Environment = environment
                 };
                 HttpContext.Session.Set<User>("user", user);
 
@@ -165,6 +174,11 @@ namespace EventViewer.Controllers
                 }
 
                 id = _liteDbService.InsertSession(session);
+
+                if (id == null)
+                {
+                    return new ObjectResult("Access denied") { StatusCode = 403 };
+                }
 
                 Console.WriteLine($"Setup Session: {HttpContext.Session.Id}");
             }
@@ -185,7 +199,7 @@ namespace EventViewer.Controllers
             
             var id = string.Empty;
 
-            if (sessionUser != null)
+            if (sessionUser != null && environment == sessionUser.Environment)
             {
                 id = _liteDbService.GetIdForUser(sessionUser);
             }
@@ -193,7 +207,8 @@ namespace EventViewer.Controllers
             {
                 sessionUser = new User
                 {
-                    UsesBasicAuth = true
+                    UsesBasicAuth = true,
+                    Environment = environment
                 };
 
                 var tokenUri = $"https://api.{environment}.lumenisx.lumenis.com/ums/v1/users/loginCredentials";
@@ -210,7 +225,7 @@ namespace EventViewer.Controllers
 
                     id = _liteDbService.InsertSession(session);
 
-                    Console.WriteLine($"Setup Session: {HttpContext.Session.Id}");
+                    Console.WriteLine($"Setup BasicAuth Session: {HttpContext.Session.Id}");
                 }
                 else
                 {
@@ -226,6 +241,10 @@ namespace EventViewer.Controllers
         [Route("/search")]
         public async Task<IActionResult> Search(string id, string from, string to, string deviceSerialNumber, string deviceType)
         {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false });
+            }
             try
             {
                 CancellationToken cancellationToken = HttpContext.RequestAborted;

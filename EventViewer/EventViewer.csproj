@@ -18,6 +18,7 @@
     <PackageReference Include="JqueryDataTables.ServerSide.AspNetCoreWeb" Version="4.0.0" />
     <PackageReference Include="LiteDB" Version="5.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.CookiePolicy" Version="2.2.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
     <PackageReference Include="Quartz.Extensions.Hosting" Version="3.3.2" />
   </ItemGroup>

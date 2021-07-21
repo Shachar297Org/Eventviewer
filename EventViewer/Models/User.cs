@@ -10,12 +10,14 @@ namespace EventViewer.Models
     {
         public JwtToken AccessToken { get; set; }
         public JwtToken RefreshToken { get; set; }
+
+        public string Environment { get; set; }
         public bool UsesBasicAuth { get; set; }
 
         public override bool Equals(object obj)
         {
             var arg = obj as User;
-            return AccessToken != null && RefreshToken != null && AccessToken.Equals(arg.AccessToken) && RefreshToken.Equals(arg.RefreshToken);
+            return AccessToken != null && RefreshToken != null && AccessToken.Equals(arg.AccessToken) && RefreshToken.Equals(arg.RefreshToken) && Environment.Equals(arg.Environment);
         }
     }
 }
