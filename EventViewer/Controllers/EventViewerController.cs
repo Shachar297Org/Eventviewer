@@ -75,6 +75,10 @@ namespace EventViewer.Controllers
             else
             {
                 //Console.WriteLine($"Index Session: {HttpContext.Session.Id}");
+                
+                var sessionIsExpired = _liteDbService.SessionIsExpired(HttpContext.Session.Id);
+                if (sessionIsExpired)
+                    return new ObjectResult("Access denied") { StatusCode = 403 };
 
                 session.SessionId = HttpContext.Session.Id;
                 session.StartTime = DateTime.UtcNow;
@@ -86,58 +90,14 @@ namespace EventViewer.Controllers
 
             return View();
         }
-
-        [HttpPost]
-        [Route("/setupApi")]
-        public async Task<IActionResult> SetupApi([FromBody] ApiLoginResponse tokens)
-        {
-            var env = HttpContext.Request.Host.Host.Split('.');
-            var environment = env[0] == "localhost" || env[1] == "eba-hzpipxpc" ? "int" : env[1];
-
-            if (tokens == null || tokens.AccessJwt == null || tokens.RefreshJwt == null)
-            {
-                return new ObjectResult("Access denied") { StatusCode = 403 }; 
-            }
-
-            var sessionUser = HttpContext.Session.Get<User>("user");
-            var id = string.Empty;
-
-            if (sessionUser != null)
-            {
-                id = _liteDbService.GetIdForUser(sessionUser);
-            }
-            else
-            {
-                User user = new User()
-                {
-                    AccessToken = tokens.AccessJwt,
-                    RefreshToken = tokens.RefreshJwt
-                };
-                HttpContext.Session.Set<User>("user", user);
-
-                var session = new Session
-                {
-                    User = user
-                };
-
-                var goodToGo = await _eventsDataService.CheckCredentials(environment);
-                if (!goodToGo)
-                {
-                    return new ObjectResult("Access denied") { StatusCode = 403 };
-                }
-
-                id = _liteDbService.InsertSession(session);
-            }
-
-            return Json(new { id = id }); // (new { id = id });
-        }
+ 
 
         [HttpPost]
         [Route("/setup")]
         public async Task<IActionResult> Setup(string accessToken, long accessTokenExpiration, string refreshToken, long refreshTokenExpiration)
         {
             var env = HttpContext.Request.Host.Host.Split('.');
-            var environment = env[0] == "localhost" || env[1] == "eba-hzpipxpc" ? "int" : env[1];
+            var environment = env[0] == "localhost" ? "int" : env[1];
             Console.WriteLine($"Environment: {environment}");
 
             if (accessToken == null || refreshToken == null || string.IsNullOrWhiteSpace(environment))
@@ -187,6 +147,53 @@ namespace EventViewer.Controllers
             return RedirectToAction("Index", new { id = id });
         }
 
+        /*
+        
+        [HttpPost]
+        [Route("/setupApi")]
+        public async Task<IActionResult> SetupApi([FromBody] ApiLoginResponse tokens)
+        {
+            var env = HttpContext.Request.Host.Host.Split('.');
+            var environment = env[0] == "localhost" ? "int" : env[1];
+
+            if (tokens == null || tokens.AccessJwt == null || tokens.RefreshJwt == null)
+            {
+                return new ObjectResult("Access denied") { StatusCode = 403 }; 
+            }
+
+            var sessionUser = HttpContext.Session.Get<User>("user");
+            var id = string.Empty;
+
+            if (sessionUser != null)
+            {
+                id = _liteDbService.GetIdForUser(sessionUser);
+            }
+            else
+            {
+                User user = new User()
+                {
+                    AccessToken = tokens.AccessJwt,
+                    RefreshToken = tokens.RefreshJwt
+                };
+                HttpContext.Session.Set<User>("user", user);
+
+                var session = new Session
+                {
+                    User = user
+                };
+
+                var goodToGo = await _eventsDataService.CheckCredentials(environment);
+                if (!goodToGo)
+                {
+                    return new ObjectResult("Access denied") { StatusCode = 403 };
+                }
+
+                id = _liteDbService.InsertSession(session);
+            }
+
+            return Json(new { id = id }); // (new { id = id });
+        }
+        
         [HttpGet]
         [Route("/setupBasic")]
         public async Task<IActionResult> SetupBasic()
@@ -235,7 +242,7 @@ namespace EventViewer.Controllers
             }
 
             return RedirectToAction("Index", new { id = id });
-        }
+        }*/
 
         [HttpPost]
         [Route("/search")]
@@ -268,7 +275,14 @@ namespace EventViewer.Controllers
                 var fromDate = DateTime.ParseExact(from, "yyyy/MM/dd HH:mm", provider);
                 var toDate = DateTime.ParseExact(to, "yyyy/MM/dd HH:mm", provider);
 
-                _liteDbService.UpdateSessionTime(id);
+                var sessionIsExpired = _liteDbService.SessionIsExpired(HttpContext.Session.Id);
+                if (sessionIsExpired)
+                    return Json(new { success = false, errorMessage = "Session is expired. Please login again through the Portal" });
+
+                bool success = _liteDbService.UpdateSessionTime(id);
+                
+                if (!success)
+                    return Json(new { success = false });                
 
                 await _eventsDataService.GetEventsData(fromDate, toDate, device);
             }
@@ -302,8 +316,14 @@ namespace EventViewer.Controllers
         {
             try
             {
+                var sessionIsExpired = _liteDbService.SessionIsExpired(HttpContext.Session.Id);
+                if (sessionIsExpired)
+                    return BadRequest();
+
                 var id = Request.Form["id"].FirstOrDefault();
-                _liteDbService.UpdateSessionTime(id);
+                bool success = _liteDbService.UpdateSessionTime(id);
+                if (!success)
+                    return BadRequest();
 
                 var draw = Request.Form["draw"].FirstOrDefault();
                 var start = Request.Form["start"].FirstOrDefault();

@@ -120,7 +120,8 @@ namespace EventViewer.Services
             }
             catch (LiteException ex)
             {
-
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.StackTrace);
             }
 
         }
@@ -133,7 +134,14 @@ namespace EventViewer.Services
 
         public Session GetSession(string id)
         {
-            return _liteDb.GetCollection<Session>("Session").FindOne(s => s.Id == new ObjectId(id));
+            var session = _liteDb.GetCollection<Session>("Session").FindOne(s => s.Id == new ObjectId(id));
+
+            if (_httpContextAccessor.HttpContext.Session.Id != session.SessionId)
+            {
+                return null;
+            }
+
+            return session;
         }
 
         public bool UpdateSession(string id, Session session)
@@ -175,5 +183,21 @@ namespace EventViewer.Services
             return found?.Id.ToString();
         }
 
+        public bool SessionIsExpired(string sessionId)
+        {
+            var sessionLength = int.Parse(Configuration["LumX:SessionIdleTimeout"]);
+            var timeExp = DateTime.UtcNow.AddMinutes(-sessionLength);
+
+            var session = _liteDb.GetCollection<Session>("Session").FindOne(s => s.SessionId == sessionId);
+
+            if (session.StartTime < timeExp)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
     }
 }

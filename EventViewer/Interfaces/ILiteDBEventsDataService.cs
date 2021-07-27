@@ -25,6 +25,9 @@ namespace EventViewer.Interfaces
         bool UpdateSession(string id, Session session);
 
         bool UpdateSessionTime(string id);
+
+        bool SessionIsExpired(string sessionId);
+
         string GetIdForUser(User sessionUser);
 
     }
