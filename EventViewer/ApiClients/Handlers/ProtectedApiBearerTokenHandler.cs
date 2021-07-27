@@ -36,7 +36,6 @@ namespace EventViewer.ApiClients
             var baseUri = request.RequestUri.GetLeftPart(UriPartial.Authority);
             
             User user = _httpContextAccessor.HttpContext.Session.Get<User>("user");
-            Console.WriteLine($"API Session {_httpContextAccessor.HttpContext.Session.Id} user: {user?.AccessToken} ");
 
             if (user == null || user.AccessToken == null)
             {

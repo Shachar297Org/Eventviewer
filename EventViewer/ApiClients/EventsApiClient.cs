@@ -78,7 +78,7 @@ namespace EventViewer.ApiClients
 
             if (!response.IsSuccessStatusCode)
             {
-                //Console.WriteLine(response.StatusCode);
+                
                 string errorJson = await response.Content.ReadAsStringAsync();
                 var errorResponseObject = JsonSerializer.Deserialize<ApiErrorResponse>(errorJson, new JsonSerializerOptions
                 {

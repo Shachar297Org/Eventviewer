@@ -136,16 +136,12 @@ namespace EventViewer.Services
         {
             var session = _liteDb.GetCollection<Session>("Session").FindOne(s => s.Id == new ObjectId(id));
 
-            if (_httpContextAccessor.HttpContext.Session.Id != session.SessionId)
-            {
-                return null;
-            }
-
             return session;
         }
 
         public bool UpdateSession(string id, Session session)
         {
+            Console.WriteLine($"UpdateSession {id}");
             return _liteDb.GetCollection<Session>("Session").Upsert(new ObjectId(id), session);
         }
 
@@ -153,7 +149,11 @@ namespace EventViewer.Services
         {
             var session = GetSession(id);
 
-            if (session == null) return false;
+            if (session == null) 
+            {
+                Console.WriteLine($"Session for id {id} is null");
+                return false;
+            }            
             else
             {
                 session.StartTime = DateTime.UtcNow;
@@ -189,6 +189,9 @@ namespace EventViewer.Services
             var timeExp = DateTime.UtcNow.AddMinutes(-sessionLength);
 
             var session = _liteDb.GetCollection<Session>("Session").FindOne(s => s.SessionId == sessionId);
+
+            if (session == null)
+                return false;
 
             if (session.StartTime < timeExp)
             {

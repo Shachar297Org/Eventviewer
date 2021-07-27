@@ -74,15 +74,15 @@ namespace EventViewer.Controllers
             }
             else
             {
-                //Console.WriteLine($"Index Session: {HttpContext.Session.Id}");
-                
+                               
                 var sessionIsExpired = _liteDbService.SessionIsExpired(HttpContext.Session.Id);
-                if (sessionIsExpired)
+                if (sessionIsExpired || session.SessionId != HttpContext.Session.Id)
+                {
+                    _logger.LogWarning($"Expired or mismatch: {sessionIsExpired}, {session.SessionId != HttpContext.Session.Id}"); 
                     return new ObjectResult("Access denied") { StatusCode = 403 };
+                }                
 
-                session.SessionId = HttpContext.Session.Id;
                 session.StartTime = DateTime.UtcNow;
-
                 _liteDbService.UpdateSession(id, session);
 
                 HttpContext.Session.Set<User>("user", session.User);
@@ -98,7 +98,7 @@ namespace EventViewer.Controllers
         {
             var env = HttpContext.Request.Host.Host.Split('.');
             var environment = env[0] == "localhost" ? "int" : env[1];
-            Console.WriteLine($"Environment: {environment}");
+            _logger.LogInformation($"Environment: {environment}");
 
             if (accessToken == null || refreshToken == null || string.IsNullOrWhiteSpace(environment))
             {
@@ -110,6 +110,7 @@ namespace EventViewer.Controllers
 
             if (sessionUser != null && environment == sessionUser.Environment)
             {
+                _logger.LogInformation($"Getting existing user");
                 id = _liteDbService.GetIdForUser(sessionUser);
             }
             else
@@ -124,12 +125,15 @@ namespace EventViewer.Controllers
 
                 var session = new Session
                 {
-                    User = user
+                    User = user,
+                    SessionId = HttpContext.Session.Id,
+                    StartTime = DateTime.UtcNow
                 };
 
                 var goodToGo = await _eventsDataService.CheckCredentials(environment);
                 if (!goodToGo)
                 {
+                    _logger.LogError($"Credentials are not good");
                     return new ObjectResult("Access denied") { StatusCode = 403 };
                 }
 
@@ -137,10 +141,11 @@ namespace EventViewer.Controllers
 
                 if (id == null)
                 {
+                    _logger.LogError($"Could not insert new session");
                     return new ObjectResult("Access denied") { StatusCode = 403 };
                 }
 
-                Console.WriteLine($"Setup Session: {HttpContext.Session.Id}");
+                _logger.LogInformation($"Setup Session: {HttpContext.Session.Id}");
             }
 
 
@@ -282,7 +287,11 @@ namespace EventViewer.Controllers
                 bool success = _liteDbService.UpdateSessionTime(id);
                 
                 if (!success)
-                    return Json(new { success = false });                
+                {
+                    _logger.LogInformation("Could not update time");
+                    //return Json(new { success = false });
+                }
+                                   
 
                 await _eventsDataService.GetEventsData(fromDate, toDate, device);
             }
@@ -316,14 +325,14 @@ namespace EventViewer.Controllers
         {
             try
             {
-                var sessionIsExpired = _liteDbService.SessionIsExpired(HttpContext.Session.Id);
-                if (sessionIsExpired)
-                    return BadRequest();
+                //var sessionIsExpired = _liteDbService.SessionIsExpired(HttpContext.Session.Id);
+                //if (sessionIsExpired)
+                //    return BadRequest();
 
                 var id = Request.Form["id"].FirstOrDefault();
-                bool success = _liteDbService.UpdateSessionTime(id);
-                if (!success)
-                    return BadRequest();
+                //bool success = _liteDbService.UpdateSessionTime(id);
+                //if (!success)
+                //    return BadRequest();
 
                 var draw = Request.Form["draw"].FirstOrDefault();
                 var start = Request.Form["start"].FirstOrDefault();
