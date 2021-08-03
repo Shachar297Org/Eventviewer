@@ -10,7 +10,8 @@ namespace EventViewer.Exceptions
     {
         INVALID_CREDENTIALS,
         LIMIT_EXCEEDED,
-        NOT_FOUND
+        NOT_FOUND,
+        NOT_SUCCEEDED
     }
 
     [Serializable()]

@@ -84,7 +84,7 @@ namespace EventViewer
             {
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                client.Timeout = TimeSpan.FromSeconds(300);
+                client.Timeout = TimeSpan.FromSeconds(600);
             }).AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
 
             services.AddTransient<IEventsDataService, EventsDataService>();

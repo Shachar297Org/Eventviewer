@@ -1,6 +1,4 @@
-﻿debugger;
-
-$(document).ready(function () {
+﻿$(document).ready(function () {
     var year = new Date().getFullYear()
     $("#year").html(year + " ©");
 
@@ -10,7 +8,6 @@ $(document).ready(function () {
     const id = window.location.pathname.split('/').pop();
 
     $("#searchForm").submit(function (e) {
-        debugger;
 
         e.preventDefault();
 
@@ -24,7 +21,7 @@ $(document).ready(function () {
             return;
         }
 
-        console.log('Doing ajax submit');
+        //console.log('Doing ajax submit');
         working = true;
 
         var formAction = $(this).attr("action");
@@ -44,7 +41,7 @@ $(document).ready(function () {
             contentType: false
         }).done(function (result) {
             // do something with the result now
-            console.log(result);
+            //console.log(result);
 
             $('#loading').addClass('d-none');
             $('#loader').removeClass('d-none');

@@ -142,7 +142,7 @@ namespace EventViewer.Services
         public bool UpdateSession(string id, Session session)
         {
             Console.WriteLine($"UpdateSession {id}");
-            return _liteDb.GetCollection<Session>("Session").Upsert(new ObjectId(id), session);
+            return _liteDb.GetCollection<Session>("Session").Update(new ObjectId(id), session);
         }
 
         public bool UpdateSessionTime(string id)

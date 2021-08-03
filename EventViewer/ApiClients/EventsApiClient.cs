@@ -31,7 +31,7 @@ namespace EventViewer.ApiClients
 
             string paramValueDeviceSn = (sn ?? "").Trim();
             string paramValueDeviceType = (ga ?? "").Trim();
-            string dtFormat = "yyyy-MM-ddThh:mm:ss.fffZ";
+            string dtFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
             string paramValueFltDateFrom = dtFrom?.ToString(dtFormat) ?? "";
             string paramValueFltDateTo = dtTo?.ToString(dtFormat) ?? "";
 
@@ -58,7 +58,7 @@ namespace EventViewer.ApiClients
         public EventsApiClient(
             HttpClient httpClient)
         {
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));            
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
         public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder =>
@@ -80,6 +80,11 @@ namespace EventViewer.ApiClients
             {
                 
                 string errorJson = await response.Content.ReadAsStringAsync();
+                if (response.StatusCode == System.Net.HttpStatusCode.BadGateway)
+                {
+                    throw new EventViewerException(EventViewerError.NOT_SUCCEEDED, "Something wrong happened. Couldn't retrieve the events for your query.");
+                }
+
                 var errorResponseObject = JsonSerializer.Deserialize<ApiErrorResponse>(errorJson, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase

@@ -198,7 +198,7 @@ namespace EventViewer.Controllers
 
             return Json(new { id = id }); // (new { id = id });
         }
-        
+        *//*
         [HttpGet]
         [Route("/setupBasic")]
         public async Task<IActionResult> SetupBasic()
@@ -232,7 +232,9 @@ namespace EventViewer.Controllers
 
                     var session = new Session
                     {
-                        User = user
+                        User = user,
+                        SessionId = HttpContext.Session.Id,
+                        StartTime = DateTime.UtcNow
                     };
 
                     id = _liteDbService.InsertSession(session);
@@ -290,30 +292,27 @@ namespace EventViewer.Controllers
                 {
                     _logger.LogInformation("Could not update time");
                     //return Json(new { success = false });
-                }
-                                   
+                }                                   
 
                 await _eventsDataService.GetEventsData(fromDate, toDate, device);
             }
             catch (EventViewerException ex)
             {
-                if (ex.ErrorCode == EventViewerError.INVALID_CREDENTIALS)
-                {
-                    return Json(new { success = false, errorCode = ex.ErrorCode, errorMessage = ex.Message });
-                }
-                else if (ex.ErrorCode == EventViewerError.LIMIT_EXCEEDED)
-                {
-                    return Json(new { success = false, errorCode = ex.ErrorCode, errorMessage = ex.Message });
-                }
-                else if (ex.ErrorCode == EventViewerError.NOT_FOUND)
-                {
-                    return Json(new { success = false, errorCode = ex.ErrorCode, errorMessage = ex.Message });
-                }
-                
+                return Json(new { success = false, errorCode = ex.ErrorCode, errorMessage = ex.Message });
             }
             catch (TaskCanceledException ce)
             {
-                return Json(new { success = false });
+                _logger.LogError(ce.Message);
+                _logger.LogError(ce.StackTrace);
+
+                return Json(new { success = false, errorMessage = "Task canceled. Processing of your request takes too much time." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                _logger.LogError(ex.StackTrace);
+
+                return Json(new { success = false, errorMessage = "Something wrong happened. Couldn't retrieve the events for your query." });
             }
         
             return Json(new { success = true });
