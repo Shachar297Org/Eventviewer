@@ -80,7 +80,7 @@ namespace EventViewer.ApiClients
             {
                 
                 string errorJson = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode == System.Net.HttpStatusCode.BadGateway)
+                if (response.StatusCode == System.Net.HttpStatusCode.BadGateway || response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
                     throw new EventViewerException(EventViewerError.NOT_SUCCEEDED, "Something wrong happened. Couldn't retrieve the events for your query.");
                 }

@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/EventViewer/EEvents-log.db
+/EventViewer/EEvents.db

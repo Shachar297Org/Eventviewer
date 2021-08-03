@@ -198,7 +198,7 @@ namespace EventViewer.Controllers
 
             return Json(new { id = id }); // (new { id = id });
         }
-        *//*
+        */
         [HttpGet]
         [Route("/setupBasic")]
         public async Task<IActionResult> SetupBasic()
@@ -249,7 +249,7 @@ namespace EventViewer.Controllers
             }
 
             return RedirectToAction("Index", new { id = id });
-        }*/
+        }
 
         [HttpPost]
         [Route("/search")]
@@ -291,7 +291,6 @@ namespace EventViewer.Controllers
                 if (!success)
                 {
                     _logger.LogInformation("Could not update time");
-                    //return Json(new { success = false });
                 }                                   
 
                 await _eventsDataService.GetEventsData(fromDate, toDate, device);
