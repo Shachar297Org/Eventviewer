@@ -205,7 +205,10 @@ namespace EventViewer.Controllers
         {
             var env = HttpContext.Request.Host.Host.Split('.');
             
-            var environment = env[0] == "localhost" || env[1] == "eba-hzpipxpc" ? "int" : env[1];
+            var environment = env[0] == "localhost" ? "int" : env[1];
+
+            if (environment != "int")
+                return new ObjectResult("Access denied") { StatusCode = 403 };
 
             var sessionUser = HttpContext.Session.Get<User>("user");
             
@@ -276,6 +279,10 @@ namespace EventViewer.Controllers
                         DeviceSerialNumber = deviceSerialNumber,
                         DeviceType = deviceType
                     };
+                }
+                else if (string.IsNullOrWhiteSpace(deviceSerialNumber) || string.IsNullOrWhiteSpace(deviceType))
+                {
+                    return Json(new { success = false, errorMessage = "Please fill in both Device Type and Device Serial Number fields with non empty values" });
                 }
 
                 CultureInfo provider = CultureInfo.InvariantCulture;

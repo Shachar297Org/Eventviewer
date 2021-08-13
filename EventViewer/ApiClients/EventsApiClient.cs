@@ -96,7 +96,7 @@ namespace EventViewer.ApiClients
                 }
                 else if (errorResponseObject?.Code == "LIMIT_EXCEEDED")
                 {
-                    throw new EventViewerException(EventViewerError.LIMIT_EXCEEDED, "The amout of events for this query reached the API limit");
+                    throw new EventViewerException(EventViewerError.LIMIT_EXCEEDED, "The amout of events for this query reached the API limit of 500,000 per request");
                 }
                 else if (errorResponseObject?.Code == "ACCESS_DENIED" || errorResponseObject?.Code == "TOKEN_NOT_VALID")
                 {
