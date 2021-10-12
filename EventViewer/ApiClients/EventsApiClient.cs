@@ -74,6 +74,8 @@ namespace EventViewer.ApiClients
         {
             try
             {
+                _logger.LogInformation(string.Format("Environment: {}, API call: {}", environment, apiUrl));
+
                 _httpClient.BaseAddress = new Uri($"https://api.{environment}.lumenisx.lumenis.com");
                 var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
 
