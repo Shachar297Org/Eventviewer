@@ -20,6 +20,8 @@ namespace EventViewer.ApiClients
     public class EventsApiClient : IEventsApiClient
     {
         private readonly HttpClient _httpClient;
+        private readonly ILogger<EventsApiClient> _logger;
+
         private static string _eventsApiUrl = "/processing/v1/events";
 
         private string ApiBuildUrl(string ga, string sn, DateTime? dtFrom, DateTime? dtTo)
@@ -56,9 +58,11 @@ namespace EventViewer.ApiClients
         }
 
         public EventsApiClient(
-            HttpClient httpClient)
+            HttpClient httpClient,
+            ILogger<EventsApiClient> logger)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder =>
@@ -68,57 +72,80 @@ namespace EventViewer.ApiClients
 
         private async Task<List<EventData>> GetEventsViaApi(string apiUrl, string environment, CancellationToken cancellationToken)
         {
-            _httpClient.BaseAddress = new Uri($"https://api.{environment}.lumenisx.lumenis.com");
-            var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
-
-            if (cancellationToken.IsCancellationRequested)
+            try
             {
-                return new List<EventData>();
-            }
+                _httpClient.BaseAddress = new Uri($"https://api.{environment}.lumenisx.lumenis.com");
+                var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                
-                string errorJson = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode == System.Net.HttpStatusCode.BadGateway || response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    throw new EventViewerException(EventViewerError.NOT_SUCCEEDED, "Something wrong happened. Couldn't retrieve the events for your query.");
+                    return new List<EventData>();
                 }
 
-                var errorResponseObject = JsonSerializer.Deserialize<ApiErrorResponse>(errorJson, new JsonSerializerOptions
+                if (!response.IsSuccessStatusCode)
+                {
+
+                    string errorJson = await response.Content.ReadAsStringAsync();
+                    if (response.StatusCode == System.Net.HttpStatusCode.BadGateway || response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        throw new EventViewerException(EventViewerError.NOT_SUCCEEDED, "Received an error from AWS service. Couldn't retrieve the events for your query.");
+                    }
+
+                    var errorResponseObject = JsonSerializer.Deserialize<ApiErrorResponse>(errorJson, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+
+                    if (errorResponseObject?.Code == null)
+                    {
+                        throw new EventViewerException(EventViewerError.NOT_FOUND, "Not found any events for this query");
+                    }
+                    else if (errorResponseObject?.Code == "LIMIT_EXCEEDED")
+                    {
+                        throw new EventViewerException(EventViewerError.LIMIT_EXCEEDED, "The amout of events for this query reached the API limit of 500,000 per request");
+                    }
+                    else if (errorResponseObject?.Code == "ACCESS_DENIED" || errorResponseObject?.Code == "TOKEN_NOT_VALID")
+                    {
+                        throw new EventViewerException(EventViewerError.INVALID_CREDENTIALS, "Access denied. Try to get new credentials through the Portal.");
+                    }
+
+                    return new List<EventData>();
+                }
+
+                string json = await response.Content.ReadAsStringAsync();
+                var responseObject = JsonSerializer.Deserialize<ApiRefreshResponse>(json, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
 
-                if (errorResponseObject?.Code == null)
+                if (responseObject != null)
                 {
-                    throw new EventViewerException(EventViewerError.NOT_FOUND, "Not found any events for this query");
+                    return responseObject.Data;
                 }
-                else if (errorResponseObject?.Code == "LIMIT_EXCEEDED")
+                else
                 {
-                    throw new EventViewerException(EventViewerError.LIMIT_EXCEEDED, "The amout of events for this query reached the API limit of 500,000 per request");
+                    return new List<EventData>();
                 }
-                else if (errorResponseObject?.Code == "ACCESS_DENIED" || errorResponseObject?.Code == "TOKEN_NOT_VALID")
-                {
-                    throw new EventViewerException(EventViewerError.INVALID_CREDENTIALS, "Access denied. Try to get new credentials through the Portal.");
-                }
-                
-                return new List<EventData>();
             }
-
-            string json = await response.Content.ReadAsStringAsync();
-            var responseObject = JsonSerializer.Deserialize<ApiRefreshResponse>(json, new JsonSerializerOptions
+            catch (HttpRequestException exception)
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-
-            if (responseObject != null)
-            {
-                return responseObject.Data;
+                _logger.LogError(exception, "HttpRequestException when calling the API");
+                throw;
             }
-            else
+            catch (TimeoutException exception)
             {
-                return new List<EventData>();
+                _logger.LogError(exception, "TimeoutException during call to API");
+                throw;
+            }
+            catch (OutOfMemoryException exception)
+            {
+                _logger.LogError(exception, "Run out of memmory when processing the response from the API");
+                throw new EventViewerException(EventViewerError.OUT_OF_MEMORY, "Too many events received for current EventViewer configuration. Please use narrower date range or use QLIK to view the events.");
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Unhandled exception when calling the API");
+                throw;
             }
         }
 

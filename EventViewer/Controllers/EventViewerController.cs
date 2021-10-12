@@ -311,7 +311,7 @@ namespace EventViewer.Controllers
                 _logger.LogError(ce.Message);
                 _logger.LogError(ce.StackTrace);
 
-                return Json(new { success = false, errorMessage = "Task canceled. Processing of your request takes too much time." });
+                return Json(new { success = false, errorMessage = "Operation canceled. Processing of your request takes too much time." });
             }
             catch (Exception ex)
             {

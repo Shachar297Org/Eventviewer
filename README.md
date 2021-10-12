@@ -6,3 +6,6 @@ Web application to view events on different LumenisX environments
 	- Retieve device events in datetime range from one of three environments INT/STAGING/PROD
 	- Filter events based on search query value
 	- Sort events by any field value
+
+### 1.0.1
+	- Made error messages more informative, improved logging

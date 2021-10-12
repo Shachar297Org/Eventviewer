@@ -10,6 +10,7 @@ namespace EventViewer.Exceptions
     {
         INVALID_CREDENTIALS,
         LIMIT_EXCEEDED,
+        OUT_OF_MEMORY,
         NOT_FOUND,
         NOT_SUCCEEDED
     }
