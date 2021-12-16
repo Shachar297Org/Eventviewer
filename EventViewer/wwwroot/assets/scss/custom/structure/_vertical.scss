@@ -1,6 +1,6 @@
 //
 // _menu.scss
-// 
+//
 
 .metismenu {
     margin: 0;
@@ -8,6 +8,11 @@
     li {
         display: block;
         width: 100%;
+        padding: 12px 20px !important;
+    }
+
+    li a {
+        color: #495057;
     }
 
     .mm-collapse {
@@ -26,9 +31,6 @@
         position: relative;
         height: 0;
         overflow: hidden;
-        transition-timing-function: ease;
-        transition-duration: .35s;
-        transition-property: height, visibility;
     }
 }
 
@@ -72,7 +74,6 @@
             font-family: 'Material Design Icons';
             display: block;
             float: right;
-            transition: transform .2s;
             font-size: 1rem;
         }
     }
@@ -81,11 +82,11 @@
         li {
             a {
                 display: block;
-                padding: .625rem 1.5rem;
+                //padding: .625rem 1.5rem;
                 color: $sidebar-menu-item-color;
                 position: relative;
                 font-size: 13px;
-                transition: all .4s;
+                
 
                 i {
                     display: inline-block;
@@ -95,7 +96,7 @@
                     line-height: 1.40625rem;
                     vertical-align: middle;
                     color: $sidebar-menu-item-icon-color;
-                    transition: all .4s;
+                    
                 }
 
                 &:hover {
@@ -198,6 +199,7 @@
     }
 
     .logo {
+
         span.logo-lg {
             display: none;
         }
@@ -364,16 +366,16 @@ body[data-sidebar="dark"] {
     }
 
     #sidebar-menu {
-    
+
         ul {
             li {
                 a {
-                    color: $sidebar-dark-menu-item-color;
+                    color: $sidebar-dark-menu-item-icon-color;
 
                     i {
                         color: $sidebar-dark-menu-item-icon-color;
                     }
-    
+
                     &:hover {
                         color: $sidebar-dark-menu-item-hover-color;
 
@@ -387,7 +389,7 @@ body[data-sidebar="dark"] {
                     li {
 
                         a {
-                            color: $sidebar-dark-menu-sub-item-color;
+                            color: $sidebar-dark-menu-item-icon-color;
 
                             &:hover {
                                 color: $sidebar-dark-menu-item-hover-color;
@@ -403,26 +405,27 @@ body[data-sidebar="dark"] {
         min-height: 1760px;
         // Side menu
         .vertical-menu {
-
             // Sidebar Menu
             #sidebar-menu {
 
                 > ul {
                     > li {
-                        
+
                         &:hover {
                             > a {
                                 background: lighten($sidebar-dark-bg, 2%);
                                 color: $sidebar-dark-menu-item-hover-color;
-                                i{
+
+                                i {
                                     color: $sidebar-dark-menu-item-hover-color;
                                 }
                             }
 
-                            >ul {
-                                a{
+                            > ul {
+                                a {
                                     color: $sidebar-dark-menu-sub-item-color;
-                                    &:hover{
+
+                                    &:hover {
                                         color: $sidebar-dark-menu-item-hover-color;
                                     }
                                 }
@@ -430,40 +433,42 @@ body[data-sidebar="dark"] {
                         }
                     }
 
-                    ul{
+                    ul {
                         background-color: $sidebar-dark-bg;
                     }
-                    
                 }
 
-                ul{
-                    
-                    li{
-                        &.mm-active .active{
+                ul {
+
+                    li {
+                        &.mm-active .active {
                             color: $sidebar-dark-menu-item-active-color !important;
-                            i{
+
+                            i {
                                 color: $sidebar-dark-menu-item-active-color !important;
                             }
                         }
                     }
                 }
-
             }
-
-
         }
     }
+
     .mm-active {
         color: $sidebar-dark-menu-item-active-color !important;
-        > a{
+
+        > a {
             color: $sidebar-dark-menu-item-active-color !important;
+
             i {
                 color: $sidebar-dark-menu-item-active-color !important;
             }
         }
+
         > i {
             color: $sidebar-dark-menu-item-active-color !important;
         }
+
         .active {
             color: $sidebar-dark-menu-item-active-color !important;
 

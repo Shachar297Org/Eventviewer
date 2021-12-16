@@ -19,6 +19,7 @@ using System.Net.Http.Headers;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Westwind.AspNetCore.Markdown;
 
 namespace EventViewer
 {
@@ -45,8 +46,6 @@ namespace EventViewer
             {
                 // Set a short timeout for easy testing.
                 options.IdleTimeout = TimeSpan.FromMinutes(int.Parse(Configuration["LumX:SessionIdleTimeout"]));
-                // You might want to only set the application cookies over a secure connection:
-                //options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.SameSite = SameSiteMode.Strict;
                 options.Cookie.HttpOnly = true;
                 // Make the session cookie essential
@@ -63,6 +62,8 @@ namespace EventViewer
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
+            services.AddMarkdown();
+
             services.AddControllersWithViews().AddMvcOptions(options =>
             {
                 var jsonInputFormatter = options.InputFormatters
@@ -73,7 +74,7 @@ namespace EventViewer
             }).AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            });
+            }).AddApplicationPart(typeof(MarkdownPageProcessorMiddleware).Assembly); ;
 
             services.AddHttpClient<IUserApiAuthenticationService, UserApiAuthenticationService>();
                         
@@ -106,7 +107,9 @@ namespace EventViewer
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-            
+
+            app.UseMarkdown();
+
             //app.UseHttpsRedirection();
             app.UseStaticFiles();
 

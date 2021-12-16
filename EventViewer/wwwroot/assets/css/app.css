@@ -284,7 +284,10 @@ body[data-layout="horizontal"] .footer {
   margin: 0; }
   .metismenu li {
     display: block;
-    width: 100%; }
+    width: 100%;
+    padding: 12px 20px !important; }
+  .metismenu li a {
+    color: #495057; }
   .metismenu .mm-collapse {
     display: none; }
     .metismenu .mm-collapse:not(.mm-show) {
@@ -294,13 +297,7 @@ body[data-layout="horizontal"] .footer {
   .metismenu .mm-collapsing {
     position: relative;
     height: 0;
-    overflow: hidden;
-    -webkit-transition-timing-function: ease;
-            transition-timing-function: ease;
-    -webkit-transition-duration: .35s;
-            transition-duration: .35s;
-    -webkit-transition-property: height, visibility;
-    transition-property: height, visibility; }
+    overflow: hidden; }
 
 .vertical-menu {
   width: 250px;
@@ -330,19 +327,12 @@ body[data-layout="horizontal"] .footer {
     font-family: 'Material Design Icons';
     display: block;
     float: right;
-    -webkit-transition: -webkit-transform .2s;
-    transition: -webkit-transform .2s;
-    transition: transform .2s;
-    transition: transform .2s, -webkit-transform .2s;
     font-size: 1rem; }
   #sidebar-menu ul li a {
     display: block;
-    padding: .625rem 1.5rem;
     color: #545a6d;
     position: relative;
-    font-size: 13px;
-    -webkit-transition: all .4s;
-    transition: all .4s; }
+    font-size: 13px; }
     #sidebar-menu ul li a i {
       display: inline-block;
       min-width: 1.75rem;
@@ -350,9 +340,7 @@ body[data-layout="horizontal"] .footer {
       font-size: 1.25rem;
       line-height: 1.40625rem;
       vertical-align: middle;
-      color: #7f8387;
-      -webkit-transition: all .4s;
-      transition: all .4s; }
+      color: #7f8387; }
     #sidebar-menu ul li a:hover {
       color: #383c40; }
       #sidebar-menu ul li a:hover i {
@@ -506,7 +494,7 @@ body[data-sidebar="dark"] .vertical-menu {
   background: #2a3042; }
 
 body[data-sidebar="dark"] #sidebar-menu ul li a {
-  color: #a6b0cf; }
+  color: #6a7187; }
   body[data-sidebar="dark"] #sidebar-menu ul li a i {
     color: #6a7187; }
   body[data-sidebar="dark"] #sidebar-menu ul li a:hover {
@@ -515,7 +503,7 @@ body[data-sidebar="dark"] #sidebar-menu ul li a {
       color: #ffffff; }
 
 body[data-sidebar="dark"] #sidebar-menu ul li ul.sub-menu li a {
-  color: #79829c; }
+  color: #6a7187; }
   body[data-sidebar="dark"] #sidebar-menu ul li ul.sub-menu li a:hover {
     color: #ffffff; }
 
@@ -3489,8 +3477,3 @@ input[switch="dark"]:checked + label {
   -webkit-transform: translateY(-50%);
           transform: translateY(-50%);
   margin: 0px auto; }
-
-
-div.dataTables_wrapper div.dataTables_processing {
-    border: 1px solid black;
-}

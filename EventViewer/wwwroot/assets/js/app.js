@@ -71,7 +71,7 @@ File: Main Js File
         // === following js will activate the menu in left side bar based on url ====
         $("#sidebar-menu a").each(function () {
             var pageUrl = window.location.href.split(/[?#]/)[0];
-            if (this.href == pageUrl) {
+            /*if (this.href == pageUrl) {
                 $(this).addClass("active");
                 $(this).parent().addClass("mm-active"); // add active to li of the current link
                 $(this).parent().parent().addClass("mm-show");
@@ -79,7 +79,7 @@ File: Main Js File
                 $(this).parent().parent().parent().addClass("mm-active");
                 $(this).parent().parent().parent().parent().addClass("mm-show"); // add active to li of the current link
                 $(this).parent().parent().parent().parent().parent().addClass("mm-active");
-            }
+            }*/
         });
     }
 
@@ -87,11 +87,11 @@ File: Main Js File
         // focus active menu in left sidebar
         $(document).ready(function () {
             if ($("#sidebar-menu").length > 0 && $("#sidebar-menu .mm-active .active").length > 0) {
-                var activeMenu = $("#sidebar-menu .mm-active .active").offset().top;
+                /*var activeMenu = $("#sidebar-menu .mm-active .active").offset().top;
                 if (activeMenu > 300) {
                     activeMenu = activeMenu - 300;
                     $(".simplebar-content-wrapper").animate({ scrollTop: activeMenu }, "slow");
-                }
+                }*/
             }
         });
     }
@@ -99,14 +99,14 @@ File: Main Js File
     function initHoriMenuActive() {
         $(".navbar-nav a").each(function () {
             var pageUrl = window.location.href.split(/[?#]/)[0];
-            if (this.href == pageUrl) {
+            /*if (this.href == pageUrl) {
                 $(this).addClass("active");
                 $(this).parent().addClass("active");
                 $(this).parent().parent().addClass("active");
                 $(this).parent().parent().parent().addClass("active");
                 $(this).parent().parent().parent().parent().addClass("active");
                 $(this).parent().parent().parent().parent().parent().addClass("active");
-            }
+            }*/
         });
     }
 
@@ -182,8 +182,8 @@ File: Main Js File
 
     function initPreloader() {
         $(window).on('load', function () {
-            $('#status').fadeOut();
-            $('#preloader').delay(350).fadeOut('slow');
+            //$('#status').fadeOut();
+            //$('#preloader').delay(350).fadeOut('slow');
         });
     }
 

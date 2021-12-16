@@ -14,7 +14,7 @@
   "devDependencies": {
     "browser-sync": "^2.26.7",
     "del": "4.1.1",
-    "gulp": "4.0.2",
+    "gulp": "^4.0.2",
     "gulp-autoprefixer": "^6.1.0",
     "gulp-cached": "1.1.1",
     "gulp-clean-css": "^4.2.0",
@@ -79,6 +79,7 @@
     "magnific-popup": "^1.1.0",
     "metismenu": "^3.0.4",
     "moment": "2.24.0",
+    "node-sass": "^7.0.0",
     "node-waves": "^0.7.6",
     "owl.carousel": "^2.3.4",
     "parsleyjs": "^2.9.1",

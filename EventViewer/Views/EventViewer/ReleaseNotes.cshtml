@@ -1,0 +1,8 @@
+﻿@using Westwind.AspNetCore.Markdown
+@{
+    ViewBag.Title = "Release Notes";
+    Layout = "_Layout";
+}
+<div style="margin-top: 40px;">
+    @Markdown.ParseHtmlStringFromFile("~/ReleaseNotes.md")
+</div>

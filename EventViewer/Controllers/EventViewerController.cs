@@ -18,6 +18,7 @@ using EventViewer.Exceptions;
 using Microsoft.Extensions.Configuration;
 using System.Threading;
 using EventViewer.Middleware;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace EventViewer.Controllers
 {
@@ -98,7 +99,13 @@ namespace EventViewer.Controllers
         {
             var env = HttpContext.Request.Host.Host.Split('.');
             var environment = env[0] == "localhost" ? "int" : env[1];
-            _logger.LogInformation($"Environment: {environment}");
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtSecurityToken = handler.ReadJwtToken(accessToken);
+            var userId = jwtSecurityToken.Payload["sub"].ToString();
+
+            _logger.LogInformation($"Environment: {environment} User: {userId}");
+            _logger.LogInformation($"Token: {accessToken}");
 
             if (accessToken == null || refreshToken == null || string.IsNullOrWhiteSpace(environment))
             {
@@ -119,6 +126,7 @@ namespace EventViewer.Controllers
                 {
                     AccessToken = new JwtToken { Token = accessToken, Expiration = accessTokenExpiration },
                     RefreshToken = new JwtToken { Token = refreshToken, Expiration = refreshTokenExpiration },
+                    UserId = userId,
                     Environment = environment
                 };
                 HttpContext.Session.Set<User>("user", user);
@@ -229,6 +237,15 @@ namespace EventViewer.Controllers
                 var tokenUri = $"https://api.{environment}.lumenisx.lumenis.com/ums/v1/users/loginCredentials";
                 var user = await _authenticationService.GetTokensForUser(sessionUser, tokenUri);
 
+                var handler = new JwtSecurityTokenHandler();
+                var jwtSecurityToken = handler.ReadJwtToken(user.AccessToken.Token);
+                var userId = jwtSecurityToken.Payload["sub"].ToString();
+
+                user.UserId = userId;
+
+                _logger.LogInformation($"Environment: {environment} User: {userId}");
+                _logger.LogInformation($"Token: {user.AccessToken.Token}");
+
                 if (user != null)
                 {
                     HttpContext.Session.Set<User>("user", user);
@@ -304,18 +321,25 @@ namespace EventViewer.Controllers
             }
             catch (EventViewerException ex)
             {
+                var session = _liteDbService.GetSession(HttpContext.Session.Id);
+
+                _logger.LogError($"Error in session: {session.Environment} for user: {session.User.UserId} message: {ex.Message}");
                 return Json(new { success = false, errorCode = ex.ErrorCode, errorMessage = ex.Message });
             }
             catch (TaskCanceledException ce)
             {
-                _logger.LogError(ce.Message);
+                var session = _liteDbService.GetSession(HttpContext.Session.Id);
+
+                _logger.LogError($"Error in session: {session.Environment} for user: {session.User.UserId} message: {ce.Message}");
                 _logger.LogError(ce.StackTrace);
 
                 return Json(new { success = false, errorMessage = "Operation canceled. Processing of your request takes too much time." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                var session = _liteDbService.GetSession(HttpContext.Session.Id);
+
+                _logger.LogError($"Error in session: {session.Environment} for user: {session.User.UserId} message: {ex.Message}");
                 _logger.LogError(ex.StackTrace);
 
                 return Json(new { success = false, errorMessage = "Something wrong happened. Couldn't retrieve the events for your query." });
@@ -379,6 +403,13 @@ namespace EventViewer.Controllers
             {
                 throw;
             }
+        }
+
+        [HttpGet]
+        [Route("/releasenotes")]
+        public IActionResult ReleaseNotes()
+        {
+            return View();
         }
     }
 }
