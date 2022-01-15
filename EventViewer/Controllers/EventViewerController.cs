@@ -138,10 +138,11 @@ namespace EventViewer.Controllers
                     StartTime = DateTime.UtcNow
                 };
 
-                var goodToGo = await _eventsDataService.CheckCredentials(environment);
+                _logger.LogInformation("Checking user on credentials validity and necessary permissions...");
+                var goodToGo = await _eventsDataService.CheckCredentials(environment, userId);
                 if (!goodToGo)
                 {
-                    _logger.LogError($"Credentials are not good");
+                    _logger.LogError($"Credentials are not good or permissions do not allow to get the events!");
                     return new ObjectResult("Access denied") { StatusCode = 403 };
                 }
 
@@ -155,7 +156,6 @@ namespace EventViewer.Controllers
 
                 _logger.LogInformation($"Setup Session: {HttpContext.Session.Id}");
             }
-
 
             return RedirectToAction("Index", new { id = id });
         }
@@ -315,29 +315,38 @@ namespace EventViewer.Controllers
                 if (!success)
                 {
                     _logger.LogInformation("Could not update time");
-                }                                   
+                }
 
-                await _eventsDataService.GetEventsData(fromDate, toDate, device);
+                var session = _liteDbService.GetSession(id);
+
+                await _eventsDataService.GetEventsData(fromDate, toDate, device, session.User.UserId);
             }
             catch (EventViewerException ex)
             {
-                var session = _liteDbService.GetSession(HttpContext.Session.Id);
+                var session = _liteDbService.GetSession(id);
 
-                _logger.LogError($"Error in session: {session.Environment} for user: {session.User.UserId} message: {ex.Message}");
+                if (session != null)
+                {
+                    _logger.LogError($"Error in session: {session.Environment} for user: {session.User.UserId} message: {ex.Message}");
+                }
+                    
                 return Json(new { success = false, errorCode = ex.ErrorCode, errorMessage = ex.Message });
             }
             catch (TaskCanceledException ce)
             {
-                var session = _liteDbService.GetSession(HttpContext.Session.Id);
+                var session = _liteDbService.GetSession(id);
 
-                _logger.LogError($"Error in session: {session.Environment} for user: {session.User.UserId} message: {ce.Message}");
-                _logger.LogError(ce.StackTrace);
+                if (session != null)
+                {
+                    _logger.LogError($"Error in session: {session.Environment} for user: {session.User.UserId} message: {ce.Message}");
+                    _logger.LogError(ce.StackTrace);
+                }
 
                 return Json(new { success = false, errorMessage = "Operation canceled. Processing of your request takes too much time." });
             }
             catch (Exception ex)
             {
-                var session = _liteDbService.GetSession(HttpContext.Session.Id);
+                var session = _liteDbService.GetSession(id);
 
                 _logger.LogError($"Error in session: {session.Environment} for user: {session.User.UserId} message: {ex.Message}");
                 _logger.LogError(ex.StackTrace);

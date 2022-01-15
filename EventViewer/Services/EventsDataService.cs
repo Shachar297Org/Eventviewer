@@ -31,7 +31,7 @@ namespace EventViewer.Services
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
-        public async Task<List<EventData>> GetEventsData(DateTime? from = null, DateTime? to = null, Device device = null)
+        public async Task<List<EventData>> GetEventsData(DateTime? from = null, DateTime? to = null, Device device = null, string userId = null)
         {
             var env = _httpContextAccessor.HttpContext.Request.Host.Host.Split('.');
             var environment = env[0] == "localhost" ? "int" : env[1];
@@ -43,7 +43,8 @@ namespace EventViewer.Services
             }
 
             var localSession = _httpContextAccessor.HttpContext.Session.Id;
-            var result = await _client.GetEvents(environment, from, to, device, cancellationToken);           
+
+            var result = await _client.GetEvents(environment, userId, from, to, device, cancellationToken);           
 
             foreach (var item in result)
             {
@@ -64,7 +65,7 @@ namespace EventViewer.Services
             return result;
         }
 
-        public async Task<bool> CheckCredentials(string environment)
+        public async Task<bool> CheckCredentials(string environment, string userId)
         {
             var from = DateTime.MinValue;
             var to = DateTime.UtcNow;
@@ -77,7 +78,7 @@ namespace EventViewer.Services
 
             try
             {
-                await _client.GetEvents(environment, from, to, device);
+                await _client.GetEvents(environment, userId, from, to, device);
             }
             catch(EventViewerException ex)
             {
