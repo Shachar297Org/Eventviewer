@@ -19,6 +19,11 @@ using Microsoft.Extensions.Configuration;
 using System.Threading;
 using EventViewer.Middleware;
 using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using System.IO;
+using System.Net.Http;
+using System.Net;
+using System.Net.Http.Headers;
 
 namespace EventViewer.Controllers
 {
@@ -412,6 +417,99 @@ namespace EventViewer.Controllers
             {
                 throw;
             }
+        }
+
+        [HttpPost]
+        [Route("/downloadEventsAsCSV")]
+        [ValidateAntiForgeryToken]
+        public IActionResult DownloadEventsAsCSV()
+        {
+            try
+            {
+                //var sessionIsExpired = _liteDbService.SessionIsExpired(HttpContext.Session.Id);
+                //if (sessionIsExpired)
+                //    return BadRequest();
+
+                var id = Request.Form["id"].FirstOrDefault();
+                
+                var from = Request.Form["from"].FirstOrDefault().Replace(" ", "_");
+                var to = Request.Form["to"].FirstOrDefault().Replace(" ", "_");
+                var deviceSN = Request.Form["deviceSN"].FirstOrDefault();
+                var deviceType = Request.Form["deviceType"].FirstOrDefault();
+
+
+                //bool success = _liteDbService.UpdateSessionTime(id);
+                //if (!success)
+                //    return BadRequest();
+
+                var draw = Request.Form["draw"].FirstOrDefault();
+                var start = Request.Form["start"].FirstOrDefault();
+                var length = Request.Form["length"].FirstOrDefault();
+                var sortColumn = Request.Form["columns[" + Request.Form["order[0][column]"].FirstOrDefault() + "][name]"].FirstOrDefault();
+                var sortColumnDirection = Request.Form["order[0][dir]"].FirstOrDefault();
+                var searchValue = Request.Form["search[value]"].FirstOrDefault();
+                int pageSize = length != null ? Convert.ToInt32(length) : 0;
+                int skip = start != null ? Convert.ToInt32(start) : 0;
+                int recordsTotal = 0;
+
+                var eventsData = _liteDbService.GetEventsQueryable();
+
+                if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDirection)))
+                {
+                    var direction = sortColumnDirection == "asc" ? 1 : 0;
+                    //eventsData = eventsData.OrderBy(sortColumn, direction);
+
+                    System.Reflection.PropertyInfo prop = typeof(EventData).GetProperty(sortColumn);
+
+                    eventsData = sortColumnDirection == "asc" ? eventsData.OrderBy(c => prop.GetValue(c, null)) : eventsData.OrderByDescending(c => prop.GetValue(c, null));
+                }
+                if (!string.IsNullOrEmpty(searchValue))
+                {
+                    eventsData = eventsData.Where(m => m.DeviceSerialNumber.Contains(searchValue)
+                                                || m.DeviceType.Contains(searchValue)
+                                                || m.EntryKey.Contains(searchValue)
+                                                || m.EntryValue.Contains(searchValue)
+                                                || m.EntryTimestamp.Contains(searchValue));
+                }
+                recordsTotal = eventsData.Count();
+                //var data = eventsData.Skip(skip).Limit(pageSize).ToList();
+                var data = eventsData;
+
+                var csvString = ToCSVString(data);
+                var csvfile = Encoding.UTF8.GetBytes(csvString);
+
+                var fileName = $"{deviceSN}_{deviceType}_{from}_{to}.csv";
+
+                var contentDispositionHeader = new System.Net.Mime.ContentDisposition
+                {
+                    Inline = true,
+                    FileName = fileName
+                };
+
+                Response.Headers.Add("Content-Type", "text/csv");
+                Response.Headers.Add("Content-Disposition", $"attachment; filename={fileName}");
+                
+                return File(csvfile, "text/csv");
+
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        private string ToCSVString(IQueryable<EventData> eventsData)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Device Serial Number,Device Type,Event Key,Event Value,Timestamp");
+            
+            foreach (EventData e in eventsData)
+            {
+                sb.AppendLine($"{e.DeviceSerialNumber},{e.DeviceType},{e.EntryKey},{e.EntryValue},{e.EntryTimestamp}");
+            }
+
+            return sb.ToString();
+
         }
 
         [HttpGet]

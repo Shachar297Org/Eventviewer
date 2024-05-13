@@ -66,6 +66,7 @@
 
                 $('#deviceName').addClass('d-none');
                 $('#datesRange').addClass('d-none');
+                $('#tocsv').addClass('d-none');
 
                 working = false;
             }
@@ -81,9 +82,11 @@
                     $('#dtResult').text($("#deviceType").val());
 
                     $('#deviceName').removeClass('d-none');
+                    $('#tocsv').removeClass('d-none');
                 } else {
                     $('#deviceName').addClass('d-none');
-                }
+                    $('#tocsv').addClass('d-none');
+                }                
 
                 table.ajax.reload(null, true);
 
@@ -91,6 +94,68 @@
             }
 
         });
+    });
+
+
+    $("#generatecsv").click(function (e) {
+
+        e.preventDefault();
+
+        $('#csvgenpr').removeClass('d-none');
+        $('#csvgen').addClass('d-none');
+
+        $.ajax({
+            type: 'post',
+            url: '/downloadEventsAsCSV',
+            datatype: "json",
+            data: {
+                "id": window.location.pathname.split('/').pop(),
+                "from": $("#searchForm #from").val(),
+                "to": $("#searchForm #to").val(),
+                "deviceSN": $("#deviceSerialNumber").val(),
+                "deviceType": $("#deviceType").val()
+            },
+            xhrFields: {
+                responseType: 'blob'
+            },
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("RequestVerificationToken",
+                    $('input:hidden[name="__RequestVerificationToken"]').val());
+
+            },
+            success: function (data, textStatus, xhr) {
+                $('#csvgenpr').addClass('d-none');
+                $('#csvgen').removeClass('d-none');
+
+                // check for a filename
+                var filename = "";
+                var disposition = xhr.getResponseHeader('Content-Disposition');
+                if (disposition && disposition.indexOf('attachment') !== -1) {
+                    var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    var matches = filenameRegex.exec(disposition);
+                    if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+                    var a = document.createElement('a');
+                    var url = window.URL.createObjectURL(data);
+                    a.href = url;
+                    a.download = filename;
+                    document.body.append(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                }
+                else {
+                    console.log("CSV file does not exist");
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                $('#csvgenpr').addClass('d-none');
+                $('#csvgen').removeClass('d-none');
+            },
+            complete: function () {
+
+            }
+        });        
+
     });
 
     var table = $(".events-datatable").DataTable({
