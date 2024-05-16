@@ -505,7 +505,7 @@ namespace EventViewer.Controllers
             
             foreach (EventData e in eventsData)
             {
-                sb.AppendLine($"{e.DeviceSerialNumber},{e.DeviceType},{e.EntryKey},{e.EntryValue},{e.EntryTimestamp}");
+                sb.AppendLine($"{e.DeviceSerialNumber},{e.DeviceType},{e.EntryKey},\"{e.EntryValue}\",{e.EntryTimestamp}");
             }
 
             return sb.ToString();
