@@ -11,14 +11,14 @@ using System.Threading.Tasks;
 
 namespace EventViewer.Services
 {
-    public class LiteDBEventsDataService : ILiteDBEventsDataService
+    public class LiteDBDataService : ILiteDBDataService
     {
         private LiteDatabase _liteDb;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         private readonly IConfiguration Configuration;
 
-        public LiteDBEventsDataService(ILiteDbContext liteDbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
+        public LiteDBDataService(ILiteDbContext liteDbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
         {
             _liteDb = liteDbContext.Database;
             _liteDb.Pragma("UTC_DATE", true);
@@ -38,52 +38,77 @@ namespace EventViewer.Services
             _liteDb.GetCollection<EventData>("EventData").EnsureIndex(expression => expression.EntryTimestamp);
             _liteDb.GetCollection<EventData>("EventData").EnsureIndex(expression => expression.EntryKey);
             _liteDb.GetCollection<EventData>("EventData").EnsureIndex(expression => expression.EntryValue);
-
             _liteDb.GetCollection<EventData>("EventData").EnsureIndex(expression => expression.DeviceSerialNumber);
             _liteDb.GetCollection<EventData>("EventData").EnsureIndex(expression => expression.DeviceType);
+            _liteDb.GetCollection<EventData>("EventData").EnsureIndex(expression => expression.LocalEntryTimestamp);
+
+            _liteDb.GetCollection<CommandData>("CommandData").EnsureIndex(expression => expression.CommandName);
+            _liteDb.GetCollection<CommandData>("CommandData").EnsureIndex(expression => expression.Timestamp);
+            _liteDb.GetCollection<CommandData>("CommandData").EnsureIndex(expression => expression.EntryKey);
+            _liteDb.GetCollection<CommandData>("CommandData").EnsureIndex(expression => expression.EntryValue);
+            _liteDb.GetCollection<CommandData>("CommandData").EnsureIndex(expression => expression.DeviceSerialNumber);
+            _liteDb.GetCollection<CommandData>("CommandData").EnsureIndex(expression => expression.DeviceType);
+            _liteDb.GetCollection<CommandData>("CommandData").EnsureIndex(expression => expression.LocalEntryTimestamp);
 
         }
 
-        public IEnumerable<EventData> GetEventsData(string deviceSerialNumber, string deviceType)
+        private void Upsert<T>(IEnumerable<T> data) where T : LumXData
+        {
+            try
+            {
+                var collectionName = typeof(T).ToString().Split('.').Last();
+                _liteDb.GetCollection<T>(collectionName).Upsert(data);
+            }
+            catch (LiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.StackTrace);
+            }
+        }
+        private IEnumerable<T> GetData<T>(string deviceSerialNumber, string deviceType) where T : LumXData
         {
             var sessionId = _httpContextAccessor.HttpContext.Session.Id;
+            var collectionName = typeof(T).ToString().Split('.').Last();
 
             if (string.IsNullOrEmpty(deviceSerialNumber) && string.IsNullOrEmpty(deviceType))
             {
-                return _liteDb.GetCollection<EventData>("EventData").Find(e => e.LocalSessionId == sessionId);
+                return _liteDb.GetCollection<T>().Find(e => e.LocalSessionId == sessionId);
             }
             else if (string.IsNullOrEmpty(deviceType))
             {
-                return _liteDb.GetCollection<EventData>("EventData")
+                return _liteDb.GetCollection<T>(collectionName)
                                 .Find(e => e.LocalSessionId == sessionId && e.DeviceSerialNumber == deviceSerialNumber);
             }
             else if (string.IsNullOrEmpty(deviceSerialNumber))
             {
-                return _liteDb.GetCollection<EventData>("EventData")
+                return _liteDb.GetCollection<T>(collectionName)
                                     .Find(e => e.LocalSessionId == sessionId && e.DeviceType == deviceType);
             }
             else
             {
-                return _liteDb.GetCollection<EventData>("EventData")
+                return _liteDb.GetCollection<T>(collectionName)
                                 .Find(e => e.LocalSessionId == sessionId && e.DeviceSerialNumber == deviceSerialNumber && e.DeviceType == deviceType);
             }
-            
+        }
+
+        private IQueryable<T> GetQueryable<T>() where T : LumXData
+        {
+            var sessionId = _httpContextAccessor.HttpContext.Session.Id;
+            var collectionName = typeof(T).ToString().Split('.').Last();
+
+            var query = _liteDb.GetCollection<T>(collectionName).Find(e => e.LocalSessionId == sessionId).AsQueryable();
+
+            return query;
+        }
+
+        public IEnumerable<EventData> GetEventsData(string deviceSerialNumber, string deviceType)
+        {
+            return GetData<EventData>(deviceSerialNumber, deviceType);            
         }
 
         public IQueryable<EventData> GetEventsQueryable()
         {
-            var sessionId = _httpContextAccessor.HttpContext.Session.Id;
-
-            var query = _liteDb.GetCollection<EventData>("EventData").Find(e => e.LocalSessionId == sessionId).AsQueryable();
-
-            return query;
-        }
-
-        public ILiteQueryable<EventData> Query()
-        {
-            var query = _liteDb.GetCollection<EventData>("EventData").Query();
-
-            return query;
+            return GetQueryable<EventData>();
         }
 
         public int DeleteExpiredSessions()
@@ -107,23 +132,9 @@ namespace EventViewer.Services
             return expired;
         }
 
-        public void Upsert(EventData eventData)
-        {
-            _liteDb.GetCollection<EventData>("EventData").Upsert(eventData);
-        }
-
         public void UpsertEventsData(IEnumerable<EventData> eventsData)
         {
-            try
-            {
-                _liteDb.GetCollection<EventData>("EventData").Upsert(eventsData);
-            }
-            catch (LiteException ex)
-            {
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.StackTrace);
-            }
-
+            Upsert(eventsData);
         }
 
         public string InsertSession(Session session)
@@ -161,9 +172,10 @@ namespace EventViewer.Services
             }
         }
 
-        public void Clear(string sessionId)
+        public void Clear<T>(string sessionId) where T : LumXData
         {
-            var query = _liteDb.GetCollection<EventData>("EventData").DeleteMany(e => e.LocalSessionId == sessionId);
+            var collectionName = typeof(T).ToString().Split('.').Last();
+            _liteDb.GetCollection<T>(collectionName).DeleteMany(e => e.LocalSessionId == sessionId);
         }
 
         public string GetIdForUser(User sessionUser)
@@ -201,6 +213,21 @@ namespace EventViewer.Services
             {
                 return false;
             }
+        }
+
+        public IEnumerable<CommandData> GetCommandsData(string deviceSerialNumber, string deviceType)
+        {
+            return GetData<CommandData>(deviceSerialNumber, deviceType);
+        }
+
+        public void UpsertCommandsData(IEnumerable<CommandData> commandsData)
+        {
+            Upsert(commandsData);
+        }
+
+        public IQueryable<CommandData> GetCommandsQueryable()
+        {
+            return GetQueryable<CommandData>();
         }
     }
 }

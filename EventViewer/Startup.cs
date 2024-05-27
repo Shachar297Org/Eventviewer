@@ -37,7 +37,7 @@ namespace EventViewer
         {
             services.Configure<LiteDbOptions>(Configuration.GetSection("LiteDbOptions"));
             services.AddSingleton<ILiteDbContext, LiteDbContext>();
-            services.AddTransient<ILiteDBEventsDataService, LiteDBEventsDataService>();
+            services.AddTransient<ILiteDBDataService, LiteDBDataService>();
 
             services.AddTransient<IEventsDataService, EventsDataService>();
 
@@ -82,6 +82,13 @@ namespace EventViewer
             services.AddTransient<ProtectedApiBearerTokenHandler>();
 
             services.AddHttpClient<IEventsApiClient, EventsApiClient>(client =>
+            {
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.Timeout = TimeSpan.FromSeconds(600);
+            }).AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
+
+            services.AddHttpClient<ICommandsApiClient, CommandsApiClient>(client =>
             {
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

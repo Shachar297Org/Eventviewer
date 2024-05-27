@@ -1,13 +1,12 @@
-﻿using EventViewer.Exceptions;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using EventViewer.Exceptions;
 using EventViewer.Interfaces;
 using EventViewer.Models;
 using EventViewer.Models.ApiLogin;
-using IdentityModel.Client;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -17,12 +16,12 @@ using System.Web;
 
 namespace EventViewer.ApiClients
 {
-    public class EventsApiClient : IEventsApiClient
+    public class CommandsApiClient : ICommandsApiClient
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger<EventsApiClient> _logger;
+        private readonly ILogger<CommandsApiClient> _logger;
 
-        private static string _eventsApiUrl = "/processing/v1/events";
+        private static string _commandsApiUrl = "/processing/v1/commands";
 
         private string ApiBuildUrl(string ga, string sn, DateTime? dtFrom, DateTime? dtTo)
         {
@@ -37,7 +36,7 @@ namespace EventViewer.ApiClients
             string paramValueFltDateFrom = dtFrom?.ToString(dtFormat) ?? "";
             string paramValueFltDateTo = dtTo?.ToString(dtFormat) ?? "";
 
-            var query = new NameValueCollection(); 
+            var query = new NameValueCollection();
             if (!string.IsNullOrWhiteSpace(paramValueDeviceSn))
                 query[paramNameDeviceSn] = paramValueDeviceSn;
             if (!string.IsNullOrWhiteSpace(paramValueDeviceType))
@@ -53,13 +52,13 @@ namespace EventViewer.ApiClients
 
             string q = String.Join("&", query.AllKeys.Select(a => HttpUtility.UrlEncode(a) + "=" + HttpUtility.UrlEncode(query[a])));
 
-            string url = _eventsApiUrl + "?" + q;
+            string url = _commandsApiUrl + "?" + q;
             return url;
         }
 
-        public EventsApiClient(
+        public CommandsApiClient(
             HttpClient httpClient,
-            ILogger<EventsApiClient> logger)
+            ILogger<CommandsApiClient> logger)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -70,7 +69,7 @@ namespace EventViewer.ApiClients
             builder.AddConsole();
         });
 
-        private async Task<List<EventData>> GetEventsViaApi(string apiUrl, string environment, string userId, CancellationToken cancellationToken)
+        private async Task<List<CommandData>> GetCommandsViaApi(string apiUrl, string environment, object userId, CancellationToken cancellationToken)
         {
             try
             {
@@ -81,7 +80,7 @@ namespace EventViewer.ApiClients
 
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    return new List<EventData>();
+                    return new List<CommandData>();
                 }
 
                 if (!response.IsSuccessStatusCode)
@@ -90,7 +89,7 @@ namespace EventViewer.ApiClients
                     string errorJson = await response.Content.ReadAsStringAsync();
                     if (response.StatusCode == System.Net.HttpStatusCode.BadGateway || response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                     {
-                        throw new EventViewerException(EventViewerError.NOT_SUCCEEDED, "Received an error from AWS service. Couldn't retrieve the events for your query.");
+                        throw new EventViewerException(EventViewerError.NOT_SUCCEEDED, "Received an error from AWS service. Couldn't retrieve the commands for your query.");
                     }
 
                     var errorResponseObject = JsonSerializer.Deserialize<ApiErrorResponse>(errorJson, new JsonSerializerOptions
@@ -100,22 +99,22 @@ namespace EventViewer.ApiClients
 
                     if (errorResponseObject?.Code == null)
                     {
-                        throw new EventViewerException(EventViewerError.NOT_FOUND, "Not found any events for this query");
+                        throw new EventViewerException(EventViewerError.NOT_FOUND, "Not found any commands for this query");
                     }
                     else if (errorResponseObject?.Code == "LIMIT_EXCEEDED")
                     {
-                        throw new EventViewerException(EventViewerError.LIMIT_EXCEEDED, "The amout of events for this query reached the API limit of 500,000 per request");
+                        throw new EventViewerException(EventViewerError.LIMIT_EXCEEDED, "The amout of commands for this query reached the API limit of 500,000 per request");
                     }
                     else if (errorResponseObject?.Code == "ACCESS_DENIED" || errorResponseObject?.Code == "TOKEN_NOT_VALID")
                     {
                         throw new EventViewerException(EventViewerError.INVALID_CREDENTIALS, "Access denied. Try to get new credentials through the Portal.");
                     }
 
-                    return new List<EventData>();
+                    return new List<CommandData>();
                 }
 
                 string json = await response.Content.ReadAsStringAsync();
-                var responseObject = JsonSerializer.Deserialize<ApiRefreshResponse<EventData>>(json, new JsonSerializerOptions
+                var responseObject = JsonSerializer.Deserialize<ApiRefreshResponse<CommandData>>(json, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
@@ -126,7 +125,7 @@ namespace EventViewer.ApiClients
                 }
                 else
                 {
-                    return new List<EventData>();
+                    return new List<CommandData>();
                 }
             }
             catch (HttpRequestException exception)
@@ -142,7 +141,7 @@ namespace EventViewer.ApiClients
             catch (OutOfMemoryException exception)
             {
                 _logger.LogError(exception, "Run out of memmory when processing the response from the API");
-                throw new EventViewerException(EventViewerError.OUT_OF_MEMORY, "Too many events received for current EventViewer configuration. Please use narrower date range or use QLIK to view the events.");
+                throw new EventViewerException(EventViewerError.OUT_OF_MEMORY, "Too many commands received for current EventViewer configuration. Please use narrower date range or use QLIK to view the commands.");
             }
             catch (Exception exception)
             {
@@ -151,14 +150,16 @@ namespace EventViewer.ApiClients
             }
         }
 
-        public async Task<List<EventData>> GetEvents(string environment, string userId, DateTime? from = null, DateTime? to = null, Device device = null, CancellationToken cancellationToken = default)
+        public async Task<List<CommandData>> GetCommands(string environment, string userId, DateTime? from = null, DateTime? to = null, Device device = null, CancellationToken cancellationToken = default)
         {
             var sn = device?.DeviceSerialNumber;
             var ga = device?.DeviceType;
 
             var apiUrl = ApiBuildUrl(ga, sn, from, to);
 
-            return await GetEventsViaApi(apiUrl, environment, userId, cancellationToken); 
+            return await GetCommandsViaApi(apiUrl, environment, userId, cancellationToken);
         }
+
+
     }
 }

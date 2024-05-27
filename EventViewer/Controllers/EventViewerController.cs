@@ -20,10 +20,8 @@ using System.Threading;
 using EventViewer.Middleware;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using System.IO;
-using System.Net.Http;
-using System.Net;
-using System.Net.Http.Headers;
+using DocumentFormat.OpenXml.Drawing.Charts;
+
 
 namespace EventViewer.Controllers
 {
@@ -31,10 +29,10 @@ namespace EventViewer.Controllers
     {
         private readonly ILogger<EventViewerController> _logger;
         private readonly IEventsDataService _eventsDataService;
-        private readonly ILiteDBEventsDataService _liteDbService;
+        private readonly ILiteDBDataService _liteDbService;
         private readonly IUserApiAuthenticationService _authenticationService;
 
-        public EventViewerController(ILogger<EventViewerController> logger, IEventsDataService eventsService, ILiteDBEventsDataService liteDbService,
+        public EventViewerController(ILogger<EventViewerController> logger, IEventsDataService eventsService, ILiteDBDataService liteDbService,
                                      IUserApiAuthenticationService authenticationService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -278,7 +276,7 @@ namespace EventViewer.Controllers
 
         [HttpPost]
         [Route("/search")]
-        public async Task<IActionResult> Search(string id, string from, string to, string deviceSerialNumber, string deviceType)
+        public async Task<IActionResult> Search(string id, string from, string to, string deviceSerialNumber, string deviceType, string dataType)
         {
             if (!ModelState.IsValid)
             {
@@ -324,7 +322,15 @@ namespace EventViewer.Controllers
 
                 var session = _liteDbService.GetSession(id);
 
-                await _eventsDataService.GetEventsData(fromDate, toDate, device, session.User.UserId);
+                if ( dataType == "events")
+                {
+                    await _eventsDataService.GetEventsData(fromDate, toDate, device, session.User.UserId);
+                }
+                else
+                {
+                    await _eventsDataService.GetCommandsData(fromDate, toDate, device, session.User.UserId);
+                }                
+                
             }
             catch (EventViewerException ex)
             {
@@ -359,12 +365,12 @@ namespace EventViewer.Controllers
                 return Json(new { success = false, errorMessage = "Something wrong happened. Couldn't retrieve the events for your query." });
             }
         
-            return Json(new { success = true });
+            return Json(new { success = true, type = dataType });
         }
 
         [HttpPost]
-        [Route("/getEvents")]
-        public IActionResult GetEvents()
+        [Route("/getData")]
+        public IActionResult GetData()
         {
             try
             {
@@ -373,6 +379,7 @@ namespace EventViewer.Controllers
                 //    return BadRequest();
 
                 var id = Request.Form["id"].FirstOrDefault();
+                var type = Request.Form["type"].FirstOrDefault();
                 //bool success = _liteDbService.UpdateSessionTime(id);
                 //if (!success)
                 //    return BadRequest();
@@ -387,31 +394,69 @@ namespace EventViewer.Controllers
                 int skip = start != null ? Convert.ToInt32(start) : 0;
                 int recordsTotal = 0;
 
-                var eventsData = _liteDbService.GetEventsQueryable();
-
-                if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDirection)))
+                if (type == "events")
                 {
-                    var direction = sortColumnDirection == "asc" ? 1 : 0;
-                    //eventsData = eventsData.OrderBy(sortColumn, direction);
+                    var data = _liteDbService.GetEventsQueryable();
 
-                    System.Reflection.PropertyInfo prop = typeof(EventData).GetProperty(sortColumn);
+                    if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDirection)))
+                    {
+                        var direction = sortColumnDirection == "asc" ? 1 : 0;
+                        //eventsData = eventsData.OrderBy(sortColumn, direction);
 
-                    eventsData = sortColumnDirection == "asc" ? eventsData.OrderBy(c => prop.GetValue(c, null)) : eventsData.OrderByDescending(c => prop.GetValue(c, null));
+                        System.Reflection.PropertyInfo prop = typeof(EventData).GetProperty(sortColumn);
+
+                        data = sortColumnDirection == "asc" ? data.OrderBy(c => prop.GetValue(c, null)) : data.OrderByDescending(c => prop.GetValue(c, null));
+                    }
+                    if (!string.IsNullOrEmpty(searchValue))
+                    {
+                        data = (data as IQueryable<EventData>).Where(m => m.DeviceSerialNumber.Contains(searchValue)
+                            || m.DeviceType.Contains(searchValue)
+                            || m.EntryKey.Contains(searchValue)
+                            || m.EntryValue.Contains(searchValue)
+                            || m.EntryTimestamp.Contains(searchValue)
+                            || m.LocalEntryTimestamp.Contains(searchValue));
+                    }
+
+                    recordsTotal = data.Count();
+                    //var data = eventsData.Skip(skip).Limit(pageSize).ToList();
+                    var resData = data.Skip(skip).Take(pageSize).ToList();
+                    var jsonData = new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = resData };
+
+                    return Ok(jsonData);
                 }
-                if (!string.IsNullOrEmpty(searchValue))
+                else
                 {
-                    eventsData = eventsData.Where(m => m.DeviceSerialNumber.Contains(searchValue)
-                                                || m.DeviceType.Contains(searchValue)
-                                                || m.EntryKey.Contains(searchValue)
-                                                || m.EntryValue.Contains(searchValue)
-                                                || m.EntryTimestamp.Contains(searchValue));
-                }
-                recordsTotal = eventsData.Count();
-                //var data = eventsData.Skip(skip).Limit(pageSize).ToList();
-                var data = eventsData.Skip(skip).Take(pageSize).ToList();
-                var jsonData = new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data };
+                    var data = _liteDbService.GetCommandsQueryable();
 
-                return Ok(jsonData);
+                    if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDirection)))
+                    {
+                        var direction = sortColumnDirection == "asc" ? 1 : 0;
+                        //eventsData = eventsData.OrderBy(sortColumn, direction);
+
+                        System.Reflection.PropertyInfo prop = typeof(CommandData).GetProperty(sortColumn);
+
+                        data = sortColumnDirection == "asc" ? data.OrderBy(c => prop.GetValue(c, null)) : data.OrderByDescending(c => prop.GetValue(c, null));
+                    }
+                    if (!string.IsNullOrEmpty(searchValue))
+                    {
+                            data = (data as IQueryable<CommandData>).Where(m => m.DeviceSerialNumber.Contains(searchValue)
+                                || m.DeviceType.Contains(searchValue)
+                                || m.EntryKey.Contains(searchValue)
+                                || m.EntryValue.Contains(searchValue)
+                                || m.CommandName.Contains(searchValue)
+                                || m.Timestamp.Contains(searchValue)
+                                || m.LocalEntryTimestamp.Contains(searchValue));
+
+                    }
+
+                    recordsTotal = data.Count();
+                    //var data = eventsData.Skip(skip).Limit(pageSize).ToList();
+                    var resData = data.Skip(skip).Take(pageSize).ToList();
+                    var jsonData = new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = resData };
+
+                    return Ok(jsonData);
+                }
+
             }
             catch (Exception ex)
             {
@@ -420,27 +465,20 @@ namespace EventViewer.Controllers
         }
 
         [HttpPost]
-        [Route("/downloadEventsAsCSV")]
+        [Route("/downloadDataAsCSV")]
         [ValidateAntiForgeryToken]
-        public IActionResult DownloadEventsAsCSV()
+        public IActionResult DownloadAsCSV()
         {
             try
             {
-                //var sessionIsExpired = _liteDbService.SessionIsExpired(HttpContext.Session.Id);
-                //if (sessionIsExpired)
-                //    return BadRequest();
 
                 var id = Request.Form["id"].FirstOrDefault();
+                var type = Request.Form["type"].FirstOrDefault();
                 
-                var from = Request.Form["from"].FirstOrDefault().Replace(" ", "_");
-                var to = Request.Form["to"].FirstOrDefault().Replace(" ", "_");
+                var from = Request.Form["from"].FirstOrDefault().Replace(" ", "_").Replace("/","_").Replace(":","_");
+                var to = Request.Form["to"].FirstOrDefault().Replace(" ", "_").Replace("/", "_").Replace(":", "_");
                 var deviceSN = Request.Form["deviceSN"].FirstOrDefault();
                 var deviceType = Request.Form["deviceType"].FirstOrDefault();
-
-
-                //bool success = _liteDbService.UpdateSessionTime(id);
-                //if (!success)
-                //    return BadRequest();
 
                 var draw = Request.Form["draw"].FirstOrDefault();
                 var start = Request.Form["start"].FirstOrDefault();
@@ -452,33 +490,68 @@ namespace EventViewer.Controllers
                 int skip = start != null ? Convert.ToInt32(start) : 0;
                 int recordsTotal = 0;
 
-                var eventsData = _liteDbService.GetEventsQueryable();
+                var csvString = string.Empty;
 
-                if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDirection)))
+                if (type == "events")
                 {
-                    var direction = sortColumnDirection == "asc" ? 1 : 0;
-                    //eventsData = eventsData.OrderBy(sortColumn, direction);
+                   var  data = _liteDbService.GetEventsQueryable();
 
-                    System.Reflection.PropertyInfo prop = typeof(EventData).GetProperty(sortColumn);
+                    if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDirection)))
+                    {
+                        var direction = sortColumnDirection == "asc" ? 1 : 0;
+                        //eventsData = eventsData.OrderBy(sortColumn, direction);
 
-                    eventsData = sortColumnDirection == "asc" ? eventsData.OrderBy(c => prop.GetValue(c, null)) : eventsData.OrderByDescending(c => prop.GetValue(c, null));
+                        System.Reflection.PropertyInfo prop = typeof(EventData).GetProperty(sortColumn);
+
+                        data = sortColumnDirection == "asc" ? data.OrderBy(c => prop.GetValue(c, null)) : data.OrderByDescending(c => prop.GetValue(c, null));
+                    }
+                    if (!string.IsNullOrEmpty(searchValue))
+                    {
+                            data = (data as IQueryable<EventData>).Where(m => m.DeviceSerialNumber.Contains(searchValue)
+                                || m.DeviceType.Contains(searchValue)
+                                || m.EntryKey.Contains(searchValue)
+                                || m.EntryValue.Contains(searchValue)
+                                || m.EntryTimestamp.Contains(searchValue)
+                                || m.LocalEntryTimestamp.Contains(searchValue));
+                        
+
+                    }
+                    recordsTotal = data.Count();
+
+                    csvString = ToEventsCSVString(data);
                 }
-                if (!string.IsNullOrEmpty(searchValue))
+                else
                 {
-                    eventsData = eventsData.Where(m => m.DeviceSerialNumber.Contains(searchValue)
-                                                || m.DeviceType.Contains(searchValue)
-                                                || m.EntryKey.Contains(searchValue)
-                                                || m.EntryValue.Contains(searchValue)
-                                                || m.EntryTimestamp.Contains(searchValue));
-                }
-                recordsTotal = eventsData.Count();
-                //var data = eventsData.Skip(skip).Limit(pageSize).ToList();
-                var data = eventsData;
+                    var data = _liteDbService.GetCommandsQueryable();
 
-                var csvString = ToCSVString(data);
+                    if (!(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDirection)))
+                    {
+                        var direction = sortColumnDirection == "asc" ? 1 : 0;
+                        //eventsData = eventsData.OrderBy(sortColumn, direction);
+
+                        System.Reflection.PropertyInfo prop = typeof(EventData).GetProperty(sortColumn);
+                        data = sortColumnDirection == "asc" ? data.OrderBy(c => prop.GetValue(c, null)) : data.OrderByDescending(c => prop.GetValue(c, null));
+                    }
+                    if (!string.IsNullOrEmpty(searchValue))
+                    {
+                        data = (data as IQueryable<CommandData>).Where(m => m.DeviceSerialNumber.Contains(searchValue)
+                                || m.DeviceType.Contains(searchValue)
+                                || m.EntryKey.Contains(searchValue)
+                                || m.EntryValue.Contains(searchValue)
+                                || m.CommandName.Contains(searchValue)
+                                || m.Timestamp.Contains(searchValue)
+                                || m.LocalEntryTimestamp.Contains(searchValue));
+                        
+
+                    }
+                    recordsTotal = data.Count();
+
+                    csvString = ToCommandsCSVString(data);
+                }
+
                 var csvfile = Encoding.UTF8.GetBytes(csvString);
 
-                var fileName = $"{deviceSN}_{deviceType}_{from}_{to}.csv";
+                var fileName = $"{type}_{deviceSN}_{deviceType}_{from}_{to}.csv";
 
                 var contentDispositionHeader = new System.Net.Mime.ContentDisposition
                 {
@@ -498,14 +571,27 @@ namespace EventViewer.Controllers
             }
         }
 
-        private string ToCSVString(IQueryable<EventData> eventsData)
+        private string ToCommandsCSVString(IQueryable<CommandData> commandsData)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Device Serial Number,Device Type,Event Key,Event Value,Timestamp");
+            sb.AppendLine("Device Serial Number,Device Type,Command Name,Entry Key,Entry Value,Timestamp,Local Entry Timestamp");
+
+            foreach (CommandData e in commandsData)
+            {
+                sb.AppendLine($"{e.DeviceSerialNumber},{e.DeviceType},{e.CommandName},{e.EntryKey},\"{e.EntryValue}\",{e.Timestamp},{e.LocalEntryTimestamp}");
+            }
+
+            return sb.ToString();
+        }
+
+        private string ToEventsCSVString(IQueryable<EventData> eventsData)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Device Serial Number,Device Type,Entry Key,Entry Value,Entry Timestamp,Local Entry Timestamp");
             
             foreach (EventData e in eventsData)
             {
-                sb.AppendLine($"{e.DeviceSerialNumber},{e.DeviceType},{e.EntryKey},\"{e.EntryValue}\",{e.EntryTimestamp}");
+                sb.AppendLine($"{e.DeviceSerialNumber},{e.DeviceType},{e.EntryKey},\"{e.EntryValue}\",{e.EntryTimestamp},{e.LocalEntryTimestamp}");
             }
 
             return sb.ToString();

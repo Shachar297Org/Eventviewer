@@ -15,16 +15,20 @@ namespace EventViewer.Services
 {
     public class EventsDataService : IEventsDataService
     {
-        private readonly IEventsApiClient _client;
-        private readonly ILiteDBEventsDataService _liteDBService;
+        private readonly IEventsApiClient _eventsApiClient;
+        private readonly ICommandsApiClient _commandsApiClient;
+
+        private readonly ILiteDBDataService _liteDBService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         private readonly IConfiguration Configuration;
 
-        public EventsDataService(IEventsApiClient client, ILiteDBEventsDataService liteDBService, IHttpContextAccessor httpContextAccessor,
+        public EventsDataService(IEventsApiClient eventsClient, ICommandsApiClient commandsClient, ILiteDBDataService liteDBService, IHttpContextAccessor httpContextAccessor,
                                  IConfiguration configuration)
         {
-            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _eventsApiClient = eventsClient ?? throw new ArgumentNullException(nameof(eventsClient));
+            _commandsApiClient = commandsClient ?? throw new ArgumentNullException(nameof(commandsClient));
+
             _liteDBService = liteDBService ?? throw new ArgumentNullException(nameof(liteDBService));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
 
@@ -44,7 +48,7 @@ namespace EventViewer.Services
 
             var localSession = _httpContextAccessor.HttpContext.Session.Id;
 
-            var result = await _client.GetEvents(environment, userId, from, to, device, cancellationToken);           
+            var result = await _eventsApiClient.GetEvents(environment, userId, from, to, device, cancellationToken);           
 
             foreach (var item in result)
             {
@@ -56,7 +60,7 @@ namespace EventViewer.Services
 
                 if (!cancellationToken.IsCancellationRequested)
                 {
-                    _liteDBService.Clear(localSession);
+                    _liteDBService.Clear<EventData>(localSession);
                     _liteDBService.UpsertEventsData(result);
                 }
 
@@ -78,7 +82,7 @@ namespace EventViewer.Services
 
             try
             {
-                await _client.GetEvents(environment, userId, from, to, device);
+                await _eventsApiClient.GetEvents(environment, userId, from, to, device);
             }
             catch(EventViewerException ex)
             {
@@ -93,5 +97,38 @@ namespace EventViewer.Services
             
         }
 
+        public async Task<List<CommandData>> GetCommandsData(DateTime? from = null, DateTime? to = null, Device device = null, string userId = null)
+        {
+            var env = _httpContextAccessor.HttpContext.Request.Host.Host.Split('.');
+            var environment = env[0] == "localhost" ? "int" : env[1];
+
+            CancellationToken cancellationToken = _httpContextAccessor.HttpContext.RequestAborted;
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return new List<CommandData>();
+            }
+
+            var localSession = _httpContextAccessor.HttpContext.Session.Id;
+
+            var result = await _commandsApiClient.GetCommands(environment, userId, from, to, device, cancellationToken);
+
+            foreach (var item in result)
+            {
+                item.LocalSessionId = localSession;
+            }
+
+            await Task.Run(() =>
+            {
+
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    _liteDBService.Clear<CommandData>(localSession);
+                    _liteDBService.UpsertCommandsData(result);
+                }
+
+            }, cancellationToken);
+
+            return result;
+        }
     }
 }

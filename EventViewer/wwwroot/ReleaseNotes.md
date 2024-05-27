@@ -13,3 +13,7 @@ Web application to view events on different LumenisX environments
 ### 1.0.2
 	- Added Lumenis user id to the logs
 	- Added Release notes page
+
+### 1.0.3
+	- Added ability to search commands
+	- Added ability to download result as csv

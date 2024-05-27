@@ -37,10 +37,18 @@
 
             </div>
 
+            <div class="form-group">
+                <label class="control-label">Data type</label>
+                <select class="form-control form-select" size="2" aria-label="size 2 select example" name="DataType" id="dataType">
+                    <option selected value="events">EVENTS</option>
+                    <option value="command">COMMANDS</option>
+                </select>
+            </div>
+
             <div class="form-group align-center">
                 <button type="submit" class="btn btn-outline-primary w-md">
                     <span id="loading" class="d-none"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;LOADING...&nbsp;/&nbsp;CANCEL</span>
-                    <span id="loader">GET EVENTS</span>
+                    <span id="loader">GET DATA</span>
                 </button>
             </div>
 
@@ -54,57 +62,122 @@
     <div class="col-lg-12">
         <div class="card">
             <div class="card-body">
-                <div class="text-body font-weight-bold">
-                    <div class="row">
-                        <div class="col-md-2 d-none" id="datesRange">
-                            <p>FROM: <span id="fromResult"></span></p>
-                            <p>TO: <span id="toResult"></span></p>
-                        </div>
 
-                        <div class="col-md-4 d-none" id="deviceName">
-                            <p>Device Serial Number: <span id="dsnResult"></span></p>
-                            <p>Device Type: <span id="dtResult"></span></p>
-                        </div>
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
 
-                        <div class="col-md-2 d-none" id="clear">
-                            <button id="clear" class="btn btn-outline-warning w-md">
-                                <span id="clearing" class="d-none"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;CLEARING... </span>
-                                <span id="clearer">CLEAR</span>
-                            </button>
-                        </div>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link active" id="events-tab" data-toggle="tab" href="#eventstab" role="tab" aria-controls="events" aria-selected="true">Events</a>
+                    </li>
 
-                        <div class="col-md-4">
-                        </div>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link" id="commands-tab" data-toggle="tab" href="#commandstab" role="tab" aria-controls="commands" aria-selected="false">Commands</a>
+                    </li>
 
-                        <div class="col-md-4 d-none" id="tocsv">
-                            <button id="generatecsv" class="btn btn-outline-primary w-md float-right">
-                                <span id="csvgenpr" class="d-none"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;Generating CSV... </span>
-                                <span id="csvgen">CSV</span>
-                            </button>
+                </ul>
+
+
+                <div class="row nogutters tab-content">
+
+                <div class="col mr-2">
+                    <div class="col tab-pane fade show active" id="events" role="tabpanel" aria-labelledby="events-tab">
+
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-2 d-none" id="datesRange">
+                                        <p>FROM: <span id="fromResult"></span></p>
+                                        <p>TO: <span id="toResult"></span></p>
+                                    </div>
+
+                                    <div class="col-md-2 d-none" id="deviceName">
+                                        <p>Device Serial Number: <span id="dsnResult"></span></p>
+                                        <p>Device Type: <span id="dtResult"></span></p>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                    </div>
+
+                                    <div class="col-md-4 d-none" id="tocsv">
+                                        <button class="btn btn-outline-primary w-md float-right generatecsv">
+                                            <span id="csvgenpr" class="d-none"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;Generating CSV... </span>
+                                            <span id="csvgen">CSV</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered dt-responsive dataTable no-footer dtr-inline events-datatable">
+                                <thead class="thead-light">
+                                    <tr>
+
+                                        <th>Device Serial Number</th>
+                                        <th>Device Type</th>
+
+                                        <th>Entry Key</th>
+                                        <th>Entry Value</th>
+                                        <th>Entry Timestamp</th>
+                                        <th>Local Entry Timestamp</th>
+
+                                    </tr>
+                                </thead>
+
+                            </table>
                         </div>
                     </div>
+                        <div class="tab-pane fade d-none" id="commands" role="tabpanel" aria-labelledby="commands-tab">
 
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-2 d-none" id="datesRange">
+                                        <p>FROM: <span id="fromResult"></span></p>
+                                        <p>TO: <span id="toResult"></span></p>
+                                    </div>
+
+                                    <div class="col-md-2 d-none" id="deviceName">
+                                        <p>Device Serial Number: <span id="dsnResult"></span></p>
+                                        <p>Device Type: <span id="dtResult"></span></p>
+                                    </div>
+
+                                    <div class="col-md-4">
+
+                                    </div>
+
+                                    <div class="col-md-4 d-none" id="tocsv">
+                                        <button class="btn btn-outline-primary w-md float-right generatecsv">
+                                            <span id="csvgenpr" class="d-none"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;Generating CSV... </span>
+                                            <span id="csvgen">CSV</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered dt-responsive dataTable no-footer dtr-inline commands-datatable">
+                                <thead class="thead-light">
+                                    <tr>
+
+                                        <th>Device Serial Number</th>
+                                        <th>Device Type</th>
+                                        <th>Command Name</th>
+                                        <th>Entry Key</th>
+                                        <th>Entry Value</th>
+                                        <th>Timestamp</th>
+                                        <th>Local Entry Timestamp</th>
+
+                                    </tr>
+                                </thead>
+
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="text-danger align-center text-center">
-                    <span class="text-center" id="error"></span>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered dt-responsive nowrap dataTable no-footer dtr-inline events-datatable">
-                        <thead class="thead-light">
-                            <tr>
 
-                                <th>Device Serial Number</th>
-                                <th>Device Type</th>
+            </div>
 
-                                <th>Event Key</th>
-                                <th>Event Value</th>
-                                <th>Timestamp</th>
 
-                            </tr>
-                        </thead>
+                
 
-                    </table>
-                </div>
+            
                 <!-- end table-responsive -->
             </div>
         </div>

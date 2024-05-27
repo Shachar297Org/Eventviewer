@@ -9,9 +9,9 @@ namespace EventViewer.Scheduler
     public class DeleteSessionDataJob : IJob
     {
         private readonly ILogger<DeleteSessionDataJob> _logger;
-        private readonly ILiteDBEventsDataService _liteDBService;
+        private readonly ILiteDBDataService _liteDBService;
 
-        public DeleteSessionDataJob(ILogger<DeleteSessionDataJob> logger, ILiteDBEventsDataService liteDBService)
+        public DeleteSessionDataJob(ILogger<DeleteSessionDataJob> logger, ILiteDBDataService liteDBService)
         {
             _logger = logger;
             _liteDBService = liteDBService;

@@ -7,17 +7,18 @@ using System.Threading.Tasks;
 
 namespace EventViewer.Interfaces
 {
-    public interface ILiteDBEventsDataService
+    public interface ILiteDBDataService
     {
         IEnumerable<EventData> GetEventsData(string deviceSerialNumber, string deviceType);
-        void Upsert(EventData user);
+        IEnumerable<CommandData> GetCommandsData(string deviceSerialNumber, string deviceType);
 
-        void Clear(string localSession);
+        void Clear<T>(string localSession) where T : LumXData;
 
         void UpsertEventsData(IEnumerable<EventData> eventsData);
+        void UpsertCommandsData(IEnumerable<CommandData> eventsData);
 
-        ILiteQueryable<EventData> Query();
         IQueryable<EventData> GetEventsQueryable();
+        IQueryable<CommandData> GetCommandsQueryable();
 
         string InsertSession(Session session);
         Session GetSession(string id); 

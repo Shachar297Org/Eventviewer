@@ -128,3 +128,14 @@ body {
 div.dataTables_wrapper div.dataTables_processing {
     border: 1px solid black;
 }
+
+select {
+    scrollbar-width: none; /*For Firefox*/
+    ;
+    -ms-overflow-style: none; /*For Internet Explorer 10+*/
+    ;
+}
+
+select::-webkit-scrollbar { /*For WebKit Browsers*/
+    width: 0;
+}

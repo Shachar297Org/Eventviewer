@@ -70,25 +70,47 @@
 
                 working = false;
             }
-            else {
+            else {             
 
-                $('#fromResult').text($("#searchForm #from").val());
-                $('#toResult').text($("#to").val());
+                if (result.type == "events") {
+                    $('#events #fromResult').text($("#searchForm #from").val());
+                    $('#events #toResult').text($("#to").val());
 
-                $('#datesRange').show();
+                    $('#events #datesRange').removeClass('d-none');
 
-                if (($("#deviceSerialNumber").val() != '') && ($("#deviceType").val() != '')) {
-                    $('#dsnResult').text($("#deviceSerialNumber").val());
-                    $('#dtResult').text($("#deviceType").val());
+                    if (($("#deviceSerialNumber").val() != '') && ($("#deviceType").val() != '')) {
+                        $('#events #dsnResult').text($("#deviceSerialNumber").val());
+                        $('#events #dtResult').text($("#deviceType").val());
 
-                    $('#deviceName').removeClass('d-none');
-                    $('#tocsv').removeClass('d-none');
+                        $('#events #deviceName').removeClass('d-none');
+                        $('#events #tocsv').removeClass('d-none');
+                    } else {
+                        $('#events #deviceName').addClass('d-none');
+                        $('#events #tocsv').addClass('d-none');
+                    }  
+
+                    $('#events-tab').click();
+                    eventsTable.ajax.reload(null, true);
                 } else {
-                    $('#deviceName').addClass('d-none');
-                    $('#tocsv').addClass('d-none');
-                }                
+                    $('#commands #fromResult').text($("#searchForm #from").val());
+                    $('#commands #toResult').text($("#to").val());
 
-                table.ajax.reload(null, true);
+                    $('#commands #datesRange').removeClass('d-none');
+
+                    if (($("#deviceSerialNumber").val() != '') && ($("#deviceType").val() != '')) {
+                        $('#commands #dsnResult').text($("#deviceSerialNumber").val());
+                        $('#commands #dtResult').text($("#deviceType").val());
+
+                        $('#commands #deviceName').removeClass('d-none');
+                        $('#commands #tocsv').removeClass('d-none');
+                    } else {
+                        $('#commands #deviceName').addClass('d-none');
+                        $('#commands #tocsv').addClass('d-none');
+                    } 
+
+                    $('#commands-tab').click();
+                    commandsTable.ajax.reload(null, true);
+                }              
 
                 working = false;
             }
@@ -96,24 +118,62 @@
         });
     });
 
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
 
-    $("#generatecsv").click(function (e) {
+        let target = e.target; // newly activated tab
+        let previous = e.relatedTarget; // previous active tab
+
+        if (target.id === "events-tab") {
+
+            // Remove active class from previous elements
+            if (previous.id === "commands-tab") {
+                $('#commands').removeClass('show active');
+                $('#commands').addClass('d-none');
+            }
+            // Add active class to target elements
+            $('#events').addClass('show active');
+            $('#events').removeClass('d-none');
+
+            eventsTable.ajax.reload(null, true);
+        }
+
+        if (target.id === "commands-tab") {
+
+            // Remove active class from previous elements
+            if (previous.id === "events-tab") {
+                $('#events').removeClass('show active');
+                $('#events').addClass('d-none');
+            }
+
+            // Add active class to target elements
+            $('#commands').addClass('show active');
+            $('#commands').removeClass('d-none');
+
+            commandsTable.ajax.reload(null, true);
+        }
+
+    })
+
+    $(".generatecsv").click(function (e) {
 
         e.preventDefault();
 
         $('#csvgenpr').removeClass('d-none');
         $('#csvgen').addClass('d-none');
 
+        var type = $('.tab-pane.show.active').attr("id");
+
         $.ajax({
             type: 'post',
-            url: '/downloadEventsAsCSV',
+            url: '/downloadDataAsCSV',
             datatype: "json",
             data: {
                 "id": window.location.pathname.split('/').pop(),
-                "from": $("#searchForm #from").val(),
-                "to": $("#searchForm #to").val(),
-                "deviceSN": $("#deviceSerialNumber").val(),
-                "deviceType": $("#deviceType").val()
+                "type": type,
+                "from": $("#fromResult").text(),
+                "to": $("#toResult").text(),
+                "deviceSN": $("#dsnResult").text(),
+                "deviceType": $("#dtResult").text()
             },
             xhrFields: {
                 responseType: 'blob'
@@ -124,8 +184,8 @@
 
             },
             success: function (data, textStatus, xhr) {
-                $('#csvgenpr').addClass('d-none');
-                $('#csvgen').removeClass('d-none');
+                $(' #csvgenpr').addClass('d-none');
+                $(' #csvgen').removeClass('d-none');
 
                 // check for a filename
                 var filename = "";
@@ -158,31 +218,70 @@
 
     });
 
-    var table = $(".events-datatable").DataTable({
+    var eventsTable = $(".events-datatable").DataTable({
         "processing": true,
         "serverSide": true,
         "filter": true,
         "ajax": {
-            "url": "/getEvents/",
+            "url": "/getData/",
             "type": "POST",
             "datatype": "json",
             "data": {
-                "id": window.location.pathname.split('/').pop()
+                "id": window.location.pathname.split('/').pop(),
+                "type": "events"
             }
         },
-        //"columnDefs": [{
-        //    "targets": [0],
-        //    "visible": true,
-        //    "searchable": false
-        //}],
+        "autoWidth": false,
+        "columnDefs": [
+            { "width": "10%", "targets": 0 },
+            { "width": "10%", "targets": 1 },
+            { "width": "10%", "targets": 2 },
+            { "width": "50%", "targets": 3 },
+            { "width": "10%", "targets": 4 },
+            { "width": "10%", "targets": 5 },
+        ],
         "columns": [
             //{ "data": "id", "name": "Id", "autoWidth": true },
-            { "data": "deviceSerialNumber", "name": "DeviceSerialNumber", "autoWidth": true },
-            { "data": "deviceType", "name": "DeviceType", "autoWidth": true },
-            { "data": "entryKey", "name": "EntryKey", "autoWidth": true },
-            { "data": "entryValue", "name": "EntryValue", "autoWidth": true },
-            { "data": "entryTimestamp", "name": "EntryTimestamp", "autoWidth": true },
+            { "data": "deviceSerialNumber", "name": "DeviceSerialNumber" },
+            { "data": "deviceType", "name": "DeviceType" },
+            { "data": "entryKey", "name": "EntryKey" },
+            { "data": "entryValue", "name": "EntryValue" },
+            { "data": "entryTimestamp", "name": "EntryTimestamp" },
+            { "data": "localEntryTimestamp", "name": "LocalEntryTimestamp" }
+        ]
+    });
 
+    var commandsTable = $(".commands-datatable").DataTable({
+        "processing": true,
+        "serverSide": true,
+        "filter": true,
+        "ajax": {
+            "url": "/getData/",
+            "type": "POST",
+            "datatype": "json",
+            "data": {
+                "id": window.location.pathname.split('/').pop(),
+                "type": "commands"
+            }
+        },
+        "autoWidth": false,
+        "columnDefs": [
+            { "width": "10%", "targets": 0 },
+            { "width": "10%", "targets": 1 },
+            { "width": "10%", "targets": 2 },
+            { "width": "10%", "targets": 3 },
+            { "width": "40%", "targets": 4 },
+            { "width": "10%", "targets": 5 },
+            { "width": "10%", "targets": 6 },
+        ],
+        "columns": [
+            { "data": "deviceSerialNumber", "name": "DeviceSerialNumber" },
+            { "data": "deviceType", "name": "DeviceType" },
+            { "data": "commandName", "name": "CommandName" },
+            { "data": "entryKey", "name": "EntryKey" },
+            { "data": "entryValue", "name": "EntryValue" },
+            { "data": "timestamp", "name": "Timestamp" },
+            { "data": "localEntryTimestamp", "name": "LocalEntryTimestamp" }
         ]
     });
 
