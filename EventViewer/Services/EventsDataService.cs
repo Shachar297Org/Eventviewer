@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Http;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -111,8 +112,9 @@ namespace EventViewer.Services
             var localSession = _httpContextAccessor.HttpContext.Session.Id;
 
             var result = await _commandsApiClient.GetCommands(environment, userId, from, to, device, cancellationToken);
+            var commands = result.Where(c => c.DeviceSerialNumber == device.DeviceSerialNumber && c.DeviceType == device.DeviceType).ToList();   
 
-            foreach (var item in result)
+            foreach (var item in commands)
             {
                 item.LocalSessionId = localSession;
             }
@@ -123,7 +125,7 @@ namespace EventViewer.Services
                 if (!cancellationToken.IsCancellationRequested)
                 {
                     _liteDBService.Clear<CommandData>(localSession);
-                    _liteDBService.UpsertCommandsData(result);
+                    _liteDBService.UpsertCommandsData(commands);
                 }
 
             }, cancellationToken);
