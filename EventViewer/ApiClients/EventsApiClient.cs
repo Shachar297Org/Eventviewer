@@ -3,6 +3,7 @@ using EventViewer.Interfaces;
 using EventViewer.Models;
 using EventViewer.Models.ApiLogin;
 using IdentityModel.Client;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,7 @@ namespace EventViewer.ApiClients
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<EventsApiClient> _logger;
+        private readonly IConfiguration _configuration;
 
         private static string _eventsApiUrl = "/processing/v1/events";
 
@@ -59,10 +61,12 @@ namespace EventViewer.ApiClients
 
         public EventsApiClient(
             HttpClient httpClient,
-            ILogger<EventsApiClient> logger)
+            ILogger<EventsApiClient> logger,
+            IConfiguration configuration)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(_configuration));
         }
 
         public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder =>
@@ -76,7 +80,13 @@ namespace EventViewer.ApiClients
             {
                 _logger.LogInformation(string.Format("Environment: {0}, User: {1}, API call: {2}", environment, userId, apiUrl));
 
-                _httpClient.BaseAddress = new Uri($"https://api.{environment}.lumenisx.lumenis.com");
+                var location = string.Empty;
+                if (_configuration["LumX:Location"].ToLower() == "china")
+                {
+                    location = ".cn";
+                }
+
+                _httpClient.BaseAddress = new Uri($"https://api.{environment}.lumenisx.lumenis.com{location}");
                 var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested)

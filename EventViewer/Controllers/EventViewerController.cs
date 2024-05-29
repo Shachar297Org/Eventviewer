@@ -31,15 +31,16 @@ namespace EventViewer.Controllers
         private readonly IEventsDataService _eventsDataService;
         private readonly ILiteDBDataService _liteDbService;
         private readonly IUserApiAuthenticationService _authenticationService;
+        private readonly IConfiguration _configuration;
 
         public EventViewerController(ILogger<EventViewerController> logger, IEventsDataService eventsService, ILiteDBDataService liteDbService,
-                                     IUserApiAuthenticationService authenticationService)
+                                     IUserApiAuthenticationService authenticationService, IConfiguration configuration)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _eventsDataService = eventsService ?? throw new ArgumentNullException(nameof(eventsService));
             _liteDbService = liteDbService ?? throw new ArgumentNullException(nameof(liteDbService));
             _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
-
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(_configuration));
         }
 
         [Route("/error")]
@@ -237,7 +238,13 @@ namespace EventViewer.Controllers
                     Environment = environment
                 };
 
-                var tokenUri = $"https://api.{environment}.lumenisx.lumenis.com/ums/v1/users/loginCredentials";
+                var location = string.Empty;
+                if (_configuration["LumX:Location"].ToLower() == "china")
+                {
+                    location = ".cn";
+                }
+
+                var tokenUri = $"https://api.{environment}.lumenisx.lumenis.com{location}/ums/v1/users/loginCredentials";
                 var user = await _authenticationService.GetTokensForUser(sessionUser, tokenUri);
 
                 var handler = new JwtSecurityTokenHandler();
