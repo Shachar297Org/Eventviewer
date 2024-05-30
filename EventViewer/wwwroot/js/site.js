@@ -10,7 +10,7 @@
     $("#searchForm").submit(function (e) {
 
         e.preventDefault();
-
+        
         if (working) {
             xhr.abort();
             working = false;
@@ -27,6 +27,12 @@
         var formAction = $(this).attr("action");
         var fdata = new FormData(this);
         fdata.append("id", id);
+
+        var isDisabled = $('#from').prop('disabled');
+        if (isDisabled) {
+            fdata.append("from", $("#from").val());
+            fdata.append("to", $("#to").val());
+        }
 
         $('#loader').addClass('d-none');
         $('#loading').removeClass('d-none');
@@ -170,10 +176,10 @@
             data: {
                 "id": window.location.pathname.split('/').pop(),
                 "type": type,
-                "from": $("#fromResult").text(),
-                "to": $("#toResult").text(),
-                "deviceSN": $("#dsnResult").text(),
-                "deviceType": $("#dtResult").text()
+                "from": $(`#${type} #fromResult`).text(),
+                "to": $(`#${type} #toResult`).text(),
+                "deviceSN": $(`#${type} #dsnResult`).text(),
+                "deviceType": $(`#${type} #dtResult`).text()
             },
             xhrFields: {
                 responseType: 'blob'
@@ -291,13 +297,66 @@
         dayOfWeekStart: 1,
         lang: 'en'
     });
-    $('#from').datetimepicker({ value: '2021/01/01 00:00', step: 10 });
 
     $('#to').datetimepicker({
         dayOfWeekStart: 1,
         lang: 'en'
     });
-    $('#to').datetimepicker({ value: '@DateTime.Now.ToString("yyyy/MM/dd HH:mm")', step: 10 });
+
+    $(".type").click(function () {
+        $(".type").removeClass("active");
+        $(this).addClass("active");
+    });
+
+    $('#daybtn').on('click', function (e) {
+        $("#from").prop('disabled', 'true');
+        $("#to").prop('disabled', 'true');
+
+        var now = moment().format('yyyy/MM/DD HH:mm');
+        var dayBefore = moment().subtract(1, 'days').format('yyyy/MM/DD HH:mm');
+
+        $('#from').datetimepicker({ value: dayBefore, step: 10 });
+        $('#to').datetimepicker({ value: now, step: 10 });
+
+    });
+
+    $('#weekbtn').on('click', function (e) {
+        $("#from").prop('disabled', 'true');
+        $("#to").prop('disabled', 'true');
+
+        var now = moment().format('yyyy/MM/DD HH:mm');
+        var weekBefore = moment().subtract(7, 'days').format('yyyy/MM/DD HH:mm');
+
+        $('#from').datetimepicker({ value: weekBefore, step: 10 });
+        $('#to').datetimepicker({ value: now, step: 10 });
+
+    });
+
+    $('#monthbtn').on('click', function (e) {
+        $("#from").prop('disabled', 'true');
+        $("#to").prop('disabled', 'true');
+
+        var now = moment().format('yyyy/MM/DD HH:mm');
+        var monthBefore = moment().subtract(1, 'months').format('yyyy/MM/DD HH:mm');
+
+        $('#from').datetimepicker({ value: monthBefore, step: 10 });
+        $('#to').datetimepicker({ value: now, step: 10 });
+
+    });
+
+    $('#custombtn').on('click', function (e) {
+        $("#from").removeAttr('disabled');
+        $("#to").removeAttr('disabled');
+
+        var now = moment().format('yyyy/MM/DD HH:mm');
+        var weekBefore = moment().subtract(7, 'days').format('yyyy/MM/DD HH:mm');
+
+        $('#from').datetimepicker({ value: weekBefore, step: 10 });
+        $('#to').datetimepicker({ value: now, step: 10 });
+
+    });
+
+    $('#daybtn').click();
 
 });
 

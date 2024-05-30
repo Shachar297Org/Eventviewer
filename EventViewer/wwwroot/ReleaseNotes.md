@@ -16,4 +16,5 @@ Web application to view events on different LumenisX environments
 
 ### 1.0.3
 	- Added ability to search commands
+	- Added predefined date ranges
 	- Added ability to download result as csv

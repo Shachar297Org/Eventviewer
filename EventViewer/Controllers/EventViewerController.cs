@@ -525,6 +525,11 @@ namespace EventViewer.Controllers
                     }
                     recordsTotal = data.Count();
 
+                    if (recordsTotal == 0)
+                    {
+                        return Ok(new { isEmpty = true });
+                    }
+
                     csvString = ToEventsCSVString(data);
                 }
                 else
@@ -553,6 +558,11 @@ namespace EventViewer.Controllers
                     }
                     recordsTotal = data.Count();
 
+                    if (recordsTotal == 0) 
+                    {
+                        return Ok(new { isEmpty = true });
+                    }
+                    
                     csvString = ToCommandsCSVString(data);
                 }
 

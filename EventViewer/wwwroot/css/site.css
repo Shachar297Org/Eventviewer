@@ -139,3 +139,8 @@ select {
 select::-webkit-scrollbar { /*For WebKit Browsers*/
     width: 0;
 }
+
+.form-control:disabled, .form-control[readonly] {
+    background-color: #f8f8f8;
+    opacity: 1;
+}

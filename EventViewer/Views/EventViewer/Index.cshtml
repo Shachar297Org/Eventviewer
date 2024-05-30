@@ -16,14 +16,34 @@
     <div class="col-lg-4"></div>
     <div class="col-lg-4 align-center">
         <form asp-controller="EventViewer" asp-action="Search" method="post" id="searchForm">
+            <div class="row">
+                
+            </div>
+            <div class="row  align-items-center">
+                <div class="col-md-4">
+                    <div class="text-center"><label class="col-form-label"><h5 class="mb-0">SELECT DATA TIMEFRAME: </h5></label></div>
+                </div>
+                <div class="col-md-6">
+                    <div class="btn-group btn-group-md" role="group" aria-label="range">
+                        <button type="button" class="btn btn-secondary type active" id="daybtn">Day</button>
+                        <button type="button" class="btn btn-secondary type" id="weekbtn">Week</button>
+                        <button type="button" class="btn btn-secondary type" id="monthbtn">Month</button>
+                        <button type="button" class="btn btn-secondary type" id="custombtn">Custom</button>
+                    </div>
+                </div>
+                <div class="col-md-2"></div>              
+                
+            </div>
+            <div class="row mb-4">
+            </div>
             <div class="form-group">
                 <label class="control-label">From</label>
-                <input type="text" id="from" name="from" class="form-control" readonly="true"/>
+                <input type="text" id="from" name="from" class="form-control"/>
 
             </div>
             <div class="form-group">
                 <label class="control-label">To</label>
-                <input type="text" id="to" name="to" class="form-control"  readonly="true" />
+                <input type="text" id="to" name="to" class="form-control" />
 
             </div>
             <div class="form-group">
@@ -45,8 +65,8 @@
                 </select>
             </div>
 
-            <div class="form-group align-center">
-                <button type="submit" class="btn btn-outline-primary w-md">
+            <div class="form-group align-center center-block">
+                <button type="submit" class="btn btn-outline-primary w-md mx-auto d-block">
                     <span id="loading" class="d-none"><i class="fa fa-spinner fa-spin"></i>&nbsp;&nbsp;LOADING...&nbsp;/&nbsp;CANCEL</span>
                     <span id="loader">GET DATA</span>
                 </button>
@@ -191,6 +211,7 @@
 <script src="~/assets/libs/metismenu/metisMenu.min.js"></script>
 <script src="~/assets/libs/simplebar/simplebar.min.js"></script>
 <script src="~/assets/libs/node-waves/waves.min.js"></script>
+<script src="~/assets/js/pages/moment.min.js"></script>
 <script src="~/assets/js/lang/jquery.multiLanguage.js"></script>
 
 <!-- Required datatable js -->
