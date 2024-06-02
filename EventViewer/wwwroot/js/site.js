@@ -356,7 +356,7 @@
 
     });
 
-    $('#daybtn').click();
+    $('#weekbtn').click();
 
 });
 
